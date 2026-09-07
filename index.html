@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Goat Clicker</title>
+    <meta name="description" content="An idle game about accumulating an unreasonable number of goats." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐐</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kavoon&family=Nunito:ital,wght@0,400;0,700;0,900;1,400&family=Chivo+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="game">
+      <!-- Left: the pasture, the goat, and the count -->
+      <section class="pasture">
+        <div class="pasture__sky" aria-hidden="true">
+          <span class="peak peak--far"></span>
+          <span class="peak peak--near"></span>
+        </div>
+
+        <header class="brand">
+          <h1 class="brand__title">Goat Clicker</h1>
+          <p class="brand__sub">A herd, compounding</p>
+        </header>
+
+        <div class="counter">
+          <p class="counter__count"><span id="goat-count">0</span> goats</p>
+          <p class="counter__rate">per second: <span id="goat-rate">0</span></p>
+        </div>
+
+        <div class="buffs" id="buffs"></div>
+
+        <button class="big-goat" id="big-goat" type="button">
+          <span class="big-goat__emoji" aria-hidden="true">🐐</span>
+          <span class="sr-only">Pet the goat to gather goats</span>
+        </button>
+
+        <p class="per-click"><span id="per-click">1</span> per pet</p>
+
+        <div class="herd" id="herd" aria-hidden="true"></div>
+      </section>
+
+      <!-- Middle: upgrades, then achievements / stats / settings -->
+      <section class="middle">
+        <div class="panel-head">
+          <h2 class="panel-head__title">Upgrades</h2>
+          <p class="panel-head__hint" id="upgrade-hint">Nothing yet — keep petting</p>
+        </div>
+        <div class="upgrade-grid" id="upgrade-grid"></div>
+
+        <nav class="tabs" id="tabs">
+          <button class="tab tab--active" type="button" data-tab="achievements">
+            Achievements <span class="tab__badge" id="achievement-tally">0/0</span>
+          </button>
+          <button class="tab" type="button" data-tab="stats">Stats</button>
+          <button class="tab" type="button" data-tab="settings">Settings</button>
+        </nav>
+
+        <div class="tab-body">
+          <div class="tab-pane tab-pane--active" id="pane-achievements">
+            <div class="badge-grid" id="badge-grid"></div>
+          </div>
+
+          <div class="tab-pane" id="pane-stats">
+            <dl class="stats" id="stats-list"></dl>
+          </div>
+
+          <div class="tab-pane" id="pane-settings">
+            <div class="settings">
+              <p class="settings__note">
+                The game saves itself every ten seconds and when you close the tab.
+              </p>
+              <div class="settings__row">
+                <button class="btn" type="button" id="btn-save">Save now</button>
+                <button class="btn" type="button" id="btn-export">Copy save code</button>
+              </div>
+              <label class="settings__label" for="import-box">Paste a save code to load it</label>
+              <textarea class="settings__box" id="import-box" rows="3" spellcheck="false"></textarea>
+              <div class="settings__row">
+                <button class="btn" type="button" id="btn-import">Load save code</button>
+                <button class="btn btn--danger" type="button" id="btn-wipe">Sell the farm</button>
+              </div>
+              <p class="settings__status" id="settings-status" role="status"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: the store -->
+      <aside class="store">
+        <div class="store__head">
+          <h2 class="store__title">Store</h2>
+          <div class="amount" id="buy-amount" role="group" aria-label="How many to buy at once">
+            <button class="amount__btn amount__btn--active" type="button" data-amount="1">
+              &times;1
+            </button>
+            <button class="amount__btn" type="button" data-amount="10">&times;10</button>
+            <button class="amount__btn" type="button" data-amount="100">&times;100</button>
+          </div>
+        </div>
+        <div class="store__list" id="building-list"></div>
+      </aside>
+    </main>
+
+    <div class="particles" id="particles" aria-hidden="true"></div>
+    <div class="goldens" id="goldens"></div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+    <div class="welcome" id="welcome" hidden>
+      <div class="welcome__card" role="dialog" aria-labelledby="welcome-title">
+        <h2 class="welcome__title" id="welcome-title">The herd kept busy</h2>
+        <p class="welcome__body">
+          You were away <strong id="welcome-time">a while</strong>. The goats gathered
+          <strong id="welcome-goats">0</strong> more at half pace.
+        </p>
+        <button class="btn" type="button" id="welcome-ok">Back to work</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
