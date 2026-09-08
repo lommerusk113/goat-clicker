@@ -7,8 +7,6 @@ import type { AchievementDef, Buff, BuildingId, GameState } from './types'
 
 export const SAVE_VERSION = 2
 
-/** Seconds before the first golden goat can wander in. */
-export const FIRST_GOLDEN_DELAY = 90
 
 export function emptyBuildings(): Record<BuildingId, number> {
   return Object.fromEntries(BUILDING_IDS.map((id) => [id, 0])) as Record<BuildingId, number>
@@ -31,7 +29,7 @@ export function createInitialState(now: number): GameState {
     upgrades: [],
     achievements: [],
     buffs: [],
-    goldenTimer: FIRST_GOLDEN_DELAY,
+    goldenTimer: BALANCE.goldenFirstDelay,
     playTime: 0,
     startedAt: now,
     lastSaved: now,
@@ -134,7 +132,7 @@ export function ascend(state: GameState, rng: () => number = Math.random): Ascen
   state.buildings = emptyBuildings()
   state.upgrades = state.upgrades.filter((id) => UPGRADE_BY_ID.get(id)?.kind === 'occult')
   state.buffs = []
-  state.goldenTimer = FIRST_GOLDEN_DELAY
+  state.goldenTimer = BALANCE.goldenFirstDelay
 
   earn(state, multipliers(state).startGoats)
   return { occult: gain, gilded }

@@ -157,10 +157,11 @@ export function clickFromBuildings(state: GameState, m = multipliers(state)): nu
   return flat
 }
 
+/** Goats per pet. A Frenzy lifts pets as well as production, so the two golden buffs stack. */
 export function goatsPerClick(state: GameState, m = multipliers(state)): number {
   const flat = (1 + m.clickFlat + clickFromBuildings(state, m)) * m.clickMult * m.global
   const share = (baseGoatsPerSecond(state, m) * m.clickCpsPercent) / 100
-  return (flat + share) * buffMult(state, 'clickMult')
+  return (flat + share) * buffMult(state, 'clickMult') * buffMult(state, 'gpsMult')
 }
 
 /** One pass over the state for everything the interface needs to draw. */

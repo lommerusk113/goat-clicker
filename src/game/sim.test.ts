@@ -10,12 +10,14 @@ import { BALANCE } from './balance'
 import type { Balance } from './balance'
 import { BUILDINGS, BUILDING_IDS } from './buildings'
 import { baseGoatsPerSecond, bulkCost, computeStats, goatsPerClick, multipliers, nextMilestone } from './economy'
+import { goldenLifetime, nextGoldenDelay, rollGolden } from './golden'
 import {
   ascend,
   buyBuilding,
   buyUpgrade,
   claimAchievements,
   createInitialState,
+  earn,
   moveGild,
   pendingOccult,
   rerollGild,
@@ -33,7 +35,12 @@ interface Scenario {
   /** Constant petting rate. Omit for the realistic profile: a burst after each ascension, then occasional. */
   petsPerSecond?: number
   hours?: number
+  /** Model golden goats. The player catches every one while active, a quarter of them while idling. */
+  goldens?: boolean
 }
+
+/** Pets per second while a Petting Frenzy is running and the player is at the screen. */
+const FRENZY_PETS_PER_SECOND = 6
 
 /** Pets per second `sinceAscension` seconds into a run: three a second for ten minutes, then now and then. */
 function realisticPets(sinceAscension: number): number {
@@ -43,7 +50,7 @@ function realisticPets(sinceAscension: number): number {
 /** Only options the player could afford within this long are compared on efficiency. */
 const PATIENCE_SECONDS = 15 * 60
 
-const MARKS = [1, 4, 8, 16, 24, 48, 96, 200, 400]
+const MARKS = [0.25, 0.5, 1, 2, 4, 8, 16, 24, 48, 96, 200, 400]
 
 function lcg(seed: number): () => number {
   let x = seed
@@ -157,6 +164,27 @@ function run(sc: Scenario) {
   const ascensions: { t: number; gain: number }[] = []
   const snapshots: string[] = []
   let runaway = false
+  let nextGolden = BALANCE.goldenFirstDelay
+  const goldenLog = { caught: 0, clickFrenzies: 0, goatsByHour: [0, 0, 0, 0] as number[] } // <1h, <4h, <24h, rest
+
+  /** A golden goat wandered in at time `at`. Lumps buffs into equivalent goats so the greedy loop stays simple. */
+  const goldenGoat = (at: number) => {
+    const m = multipliers(s)
+    nextGolden = at + nextGoldenDelay(m, rng) + goldenLifetime(m)
+    const active = at - runStart < 600
+    if (!active && rng() > 0.25) return
+    const reward = rollGolden(s, rng)
+    goldenLog.caught++
+    let goats = reward.goats
+    if (reward.buff?.kind === 'gpsMult') goats = (reward.buff.factor - 1) * baseGoatsPerSecond(s) * reward.buff.duration
+    if (reward.buff?.kind === 'clickMult') {
+      goldenLog.clickFrenzies++
+      goats = reward.buff.factor * goatsPerClick(s) * FRENZY_PETS_PER_SECOND * reward.buff.duration
+    }
+    earn(s, goats)
+    s.goldenClicks++
+    goldenLog.goatsByHour[at < 3600 ? 0 : at < 4 * 3600 ? 1 : at < 24 * 3600 ? 2 : 3] += goats
+  }
 
   try {
     while (t < hoursTotal * 3600) {
@@ -166,6 +194,7 @@ function run(sc: Scenario) {
         const result = ascend(s, rng)
         ascensions.push({ t, gain: result.occult })
         runStart = t
+        nextGolden = t + BALANCE.goldenFirstDelay
         spendOnOccult(s)
         continue
       }
@@ -175,8 +204,18 @@ function run(sc: Scenario) {
       const gps = income(s)
       const best = bestPurchase(s)
       if (!best) break
-      const wait = Math.max(0, (best.cost - s.goats) / gps)
+      let wait = Math.max(0, (best.cost - s.goats) / gps)
       if (!Number.isFinite(wait)) break
+      // A golden goat due before the purchase interrupts the wait; the loop then re-plans.
+      if (sc.goldens && t + wait > nextGolden) {
+        const at = Math.max(t, nextGolden)
+        const partial = at - t
+        s.goats += gps * partial
+        s.totalGoats += gps * partial
+        t = at
+        goldenGoat(at)
+        continue
+      }
       longestWait = Math.max(longestWait, wait)
       const before = t
       t += wait
@@ -211,9 +250,13 @@ function run(sc: Scenario) {
   const asc = ascensions.map((a) => `${(a.t / 3600).toFixed(0)}h:+${a.gain}`).join(' ')
   const never = ACHIEVEMENTS.filter((a) => !earnedAt.has(a.id)).map((a) => a.id)
 
+  const goldenLine = sc.goldens
+    ? `  golden goats caught: ${goldenLog.caught} (${goldenLog.clickFrenzies} petting frenzies); goats from them <1h/<4h/<24h/rest: ${goldenLog.goatsByHour.map((g) => g.toExponential(1)).join('/')}`
+    : ''
   return [
     `=== ${sc.name}${runaway ? '  *** RUNAWAY ***' : ''}`,
     ...snapshots,
+    ...(goldenLine ? [goldenLine] : []),
     `  first bought: ${frontier}`,
     `  ascensions (${ascensions.length}): ${asc}`,
     `  achievements earned by 1h/8h/24h/96h/400h: ${[1, 8, 24, 96, 400].map(achievementsBy).join('/')} of ${ACHIEVEMENTS.length}; never: ${never.length} (${never.slice(0, 12).join(',')}${never.length > 12 ? ',…' : ''})`,
@@ -222,7 +265,7 @@ function run(sc: Scenario) {
 }
 
 const SCENARIOS: Scenario[] = [
-  { name: 'default tuning, realistic player' },
+  { name: 'default tuning, realistic player, golden goats on', goldens: true },
 ]
 
 test.skipIf(!import.meta.env.VITE_SIM)('balance sweep', () => {

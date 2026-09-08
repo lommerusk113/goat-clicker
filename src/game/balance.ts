@@ -30,6 +30,21 @@ export const BALANCE = {
   gildRerollCost: 1,
   /** Occult points to place one gild exactly where you want it. */
   gildMoveCost: 20,
+  /** Seconds before the first golden goat of a run. */
+  goldenFirstDelay: 300,
+  /**
+   * Seconds between golden goats, before upgrades: Cookie Clicker's window.
+   * Simulated at 150-400s with a 15% Petting Frenzy, goldens paid four times
+   * the whole economy in the first hour; at these numbers they pay about 7%.
+   */
+  goldenMinDelay: 300,
+  goldenMaxDelay: 900,
+  /** Seconds a golden goat stays on screen, before upgrades. Long, so idling is fine. */
+  goldenLifetime: 40,
+  /** Odds of each golden goat outcome; whatever is left over is Lucky. */
+  goldenFrenzyChance: 0.4,
+  goldenClickFrenzyChance: 0.05,
+  goldenClickFrenzyMult: 777,
 }
 
 export type Balance = typeof BALANCE

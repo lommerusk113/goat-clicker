@@ -976,6 +976,18 @@ body {
     max-height: none;
   }
 
+  /* A thumb-sized goat: three times the desktop minimum. */
+  .big-goat__emoji {
+    font-size: min(60vw, 19rem);
+  }
+
+  /* Toasts sit top right so they never cover the section bar. */
+  .toasts {
+    top: 0.75rem;
+    bottom: auto;
+    align-items: flex-end;
+  }
+
   .mobile-nav {
     position: fixed;
     right: 0;
@@ -1187,6 +1199,18 @@ body {
 .btn:disabled {
   cursor: not-allowed;
   filter: grayscale(0.6) brightness(0.6);
+}
+
+/* Touch: no double-tap zoom or long-press callout on things you tap a lot. */
+.big-goat,
+.building,
+.upgrade,
+.badge,
+.tab,
+.amount__btn,
+.mobile-nav__btn {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 
 /* --- cloud sync ------------------------------------------------------------ */

@@ -14,6 +14,18 @@ export interface TipContent {
 }
 
 const MARGIN = 12
+/** Milliseconds a finger has to rest on something before its tooltip shows. */
+const LONG_PRESS_MS = 450
+
+/** Whether the last pointer to touch the page was a finger. Focus after a tap must not open tooltips. */
+let touching = false
+document.addEventListener(
+  'pointerdown',
+  (event) => {
+    touching = event.pointerType === 'touch'
+  },
+  true,
+)
 
 export interface Tooltip {
   /** Shows this content whenever the target is hovered or focused. */
@@ -78,6 +90,15 @@ export function createTooltip(node: HTMLElement): Tooltip {
     node.hidden = true
   }
 
+  // A tooltip opened by a long press stays until the finger lands somewhere else.
+  document.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (current && !current.contains(event.target as Node)) hide()
+    },
+    true,
+  )
+
   return {
     attach(target, content) {
       const show = () => {
@@ -87,17 +108,51 @@ export function createTooltip(node: HTMLElement): Tooltip {
         place(target)
       }
       const leave = () => {
-        if (current === target) hide()
+        if (current === target && !touching) hide()
       }
 
-      target.addEventListener('pointerenter', show)
-      target.addEventListener('focus', show)
+      // Mouse and keyboard: hover or focus, as usual.
+      target.addEventListener('pointerenter', (event) => {
+        if (event.pointerType !== 'touch') show()
+      })
+      target.addEventListener('focus', () => {
+        if (!touching) show()
+      })
       target.addEventListener('pointerleave', leave)
       target.addEventListener('blur', leave)
-      // Prices move while you hover, so redraw on click-through too.
-      target.addEventListener('click', () => {
-        if (current === target) show()
+
+      // Touch: a tap buys, a long press reads. The click after a long press is swallowed.
+      let pressTimer = 0
+      let longPressed = false
+      target.addEventListener('pointerdown', (event) => {
+        if (event.pointerType !== 'touch') return
+        longPressed = false
+        clearTimeout(pressTimer)
+        pressTimer = window.setTimeout(() => {
+          longPressed = true
+          show()
+        }, LONG_PRESS_MS)
       })
+      for (const done of ['pointerup', 'pointercancel', 'pointerleave'] as const) {
+        target.addEventListener(done, () => clearTimeout(pressTimer))
+      }
+      target.addEventListener('contextmenu', (event) => {
+        if (touching) event.preventDefault()
+      })
+      target.addEventListener(
+        'click',
+        (event) => {
+          if (longPressed) {
+            longPressed = false
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            return
+          }
+          // Prices move while you hover, so redraw on click-through too.
+          if (current === target) show()
+        },
+        true,
+      )
     },
     hide,
   }

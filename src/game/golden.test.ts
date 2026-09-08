@@ -1,13 +1,7 @@
 import { describe, expect, test } from 'vitest'
+import { BALANCE } from './balance'
 import { multipliers } from './economy'
-import {
-  GOLDEN_LIFETIME,
-  GOLDEN_MAX_DELAY,
-  GOLDEN_MIN_DELAY,
-  goldenLifetime,
-  nextGoldenDelay,
-  rollGolden,
-} from './golden'
+import { goldenLifetime, nextGoldenDelay, rollGolden } from './golden'
 import { createInitialState } from './state'
 import type { GameState } from './types'
 
@@ -20,8 +14,8 @@ function fakeRng(...values: number[]): () => number {
 describe('nextGoldenDelay', () => {
   test('stays inside the spawn window', () => {
     const m = multipliers(createInitialState(0))
-    expect(nextGoldenDelay(m, fakeRng(0))).toBe(GOLDEN_MIN_DELAY)
-    expect(nextGoldenDelay(m, fakeRng(0.999999))).toBeCloseTo(GOLDEN_MAX_DELAY, 3)
+    expect(nextGoldenDelay(m, fakeRng(0))).toBe(BALANCE.goldenMinDelay)
+    expect(nextGoldenDelay(m, fakeRng(0.999999))).toBeCloseTo(BALANCE.goldenMaxDelay, 2)
   })
 
   test('shortens the wait when spawn upgrades are owned', () => {
@@ -35,13 +29,13 @@ describe('nextGoldenDelay', () => {
 
 describe('goldenLifetime', () => {
   test('is the base lifetime with no upgrades', () => {
-    expect(goldenLifetime(multipliers(createInitialState(0)))).toBe(GOLDEN_LIFETIME)
+    expect(goldenLifetime(multipliers(createInitialState(0)))).toBe(BALANCE.goldenLifetime)
   })
 
   test('is extended by lifetime upgrades', () => {
     const s = createInitialState(0)
     s.upgrades = ['golden-prints']
-    expect(goldenLifetime(multipliers(s))).toBe(GOLDEN_LIFETIME * 2)
+    expect(goldenLifetime(multipliers(s))).toBe(BALANCE.goldenLifetime * 2)
   })
 })
 
@@ -55,7 +49,7 @@ function richFarm(): GameState {
 describe('rollGolden', () => {
   test('lucky pays a slice of the herd and nothing else', () => {
     const s = richFarm()
-    const reward = rollGolden(s, fakeRng(0.1))
+    const reward = rollGolden(s, fakeRng(0.9))
     expect(reward.kind).toBe('lucky')
     expect(reward.goats).toBeCloseTo(1_000_000 * 0.15 + 13)
     expect(reward.buff).toBeUndefined()
@@ -65,19 +59,19 @@ describe('rollGolden', () => {
     const s = createInitialState(0)
     s.goats = 1e12
     s.buildings.meadow = 1 // 1 goat per second
-    const reward = rollGolden(s, fakeRng(0.1))
+    const reward = rollGolden(s, fakeRng(0.9))
     expect(reward.goats).toBeCloseTo(1 * 900 + 13)
   })
 
   test('frenzy multiplies production for a while', () => {
-    const reward = rollGolden(richFarm(), fakeRng(0.6))
+    const reward = rollGolden(richFarm(), fakeRng(0.3))
     expect(reward.kind).toBe('frenzy')
     expect(reward.buff).toMatchObject({ kind: 'gpsMult', factor: 7, remaining: 77 })
     expect(reward.goats).toBe(0)
   })
 
   test('petting frenzy multiplies clicks for a short burst', () => {
-    const reward = rollGolden(richFarm(), fakeRng(0.95))
+    const reward = rollGolden(richFarm(), fakeRng(0.01))
     expect(reward.kind).toBe('clickFrenzy')
     expect(reward.buff).toMatchObject({ kind: 'clickMult', factor: 777, remaining: 13 })
   })
@@ -85,14 +79,14 @@ describe('rollGolden', () => {
   test('power upgrades scale the payout', () => {
     const s = richFarm()
     s.upgrades = ['golden-bell']
-    const reward = rollGolden(s, fakeRng(0.1))
+    const reward = rollGolden(s, fakeRng(0.9))
     expect(reward.goats).toBeCloseTo((1_000_000 * 0.15 + 13) * 1.3)
   })
 
   test('power upgrades do not stretch buff timers', () => {
     const s = richFarm()
     s.upgrades = ['golden-bell']
-    const reward = rollGolden(s, fakeRng(0.6))
+    const reward = rollGolden(s, fakeRng(0.3))
     expect(reward.buff!.remaining).toBe(77)
   })
 })

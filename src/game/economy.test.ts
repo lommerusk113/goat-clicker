@@ -218,6 +218,11 @@ describe('goatsPerClick', () => {
     const s = stateWith({ buffs: [clickFrenzy()] })
     expect(goatsPerClick(s)).toBe(777)
   })
+
+  test('a frenzy lifts pets too, and stacks with a petting frenzy', () => {
+    expect(goatsPerClick(stateWith({ buffs: [frenzy()] }))).toBe(7)
+    expect(goatsPerClick(stateWith({ buffs: [frenzy(), clickFrenzy()] }))).toBe(7 * 777)
+  })
 })
 
 describe('computeStats', () => {

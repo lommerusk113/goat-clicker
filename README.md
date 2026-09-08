@@ -52,10 +52,14 @@ only packages, and all of them are dev-only.
   cube-root scale on top of it runs away. Spending points on occult
   upgrades or gilds gives up that bonus, so every purchase is a trade. Occult upgrades form a small tree that also
   covers starting goats, golden-goat timing, and offline earnings.
-- **Golden goats** wander in every three to seven minutes and stay for forty
-  seconds, so checking in now and then is enough to catch them. Catching one
-  pays a lump sum, or starts a Frenzy (×7 production) or a Petting Frenzy
-  (×777 per pet).
+- **Golden goats** wander in every five to fifteen minutes, the first after
+  five, and stay for forty seconds, so checking in now and then is enough to
+  catch them. Catching one usually pays a lump sum (55%), or starts a Frenzy
+  (×7 production and petting, 40%), or rarely a Petting Frenzy (×777 per pet,
+  5%). The two frenzies stack. The
+  rarity matters: simulated at the old two-to-seven-minute spawn with a 15%
+  Petting Frenzy, golden goats paid out four times the whole economy in the
+  first hour.
 - **Achievements** are awarded the moment their condition is met, and feed the
   herd-wide upgrades. Every building has badges at 50, 100, 200, 300, 400 and
   500 owned.

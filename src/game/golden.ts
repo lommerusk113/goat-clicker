@@ -1,16 +1,7 @@
+import { BALANCE } from './balance'
 import { baseGoatsPerSecond, multipliers } from './economy'
 import type { Multipliers } from './economy'
 import type { Buff, GameState } from './types'
-
-/**
- * Seconds between golden goats, before upgrades. Rare enough that the game
- * stays idle, and they linger long enough that glancing back now and then is
- * all it takes to catch one.
- */
-export const GOLDEN_MIN_DELAY = 150
-export const GOLDEN_MAX_DELAY = 400
-/** Seconds a golden goat sticks around, before upgrades. */
-export const GOLDEN_LIFETIME = 40
 
 export type GoldenKind = 'lucky' | 'frenzy' | 'clickFrenzy'
 
@@ -23,28 +14,22 @@ export interface GoldenReward {
   buff?: Buff
 }
 
+/**
+ * Seconds until the next golden goat. Rare enough that the game stays idle;
+ * they linger long enough that glancing back now and then catches them.
+ */
 export function nextGoldenDelay(m: Multipliers, rng: () => number = Math.random): number {
-  const span = GOLDEN_MAX_DELAY - GOLDEN_MIN_DELAY
-  return (GOLDEN_MIN_DELAY + rng() * span) / m.goldenFreq
+  const span = BALANCE.goldenMaxDelay - BALANCE.goldenMinDelay
+  return (BALANCE.goldenMinDelay + rng() * span) / m.goldenFreq
 }
 
 export function goldenLifetime(m: Multipliers): number {
-  return GOLDEN_LIFETIME * m.goldenLife
+  return BALANCE.goldenLifetime * m.goldenLife
 }
 
-/** Chance of each outcome, in order. */
-const ODDS: [GoldenKind, number][] = [
-  ['lucky', 0.5],
-  ['frenzy', 0.35],
-  ['clickFrenzy', 0.15],
-]
-
 function pick(roll: number): GoldenKind {
-  let acc = 0
-  for (const [kind, chance] of ODDS) {
-    acc += chance
-    if (roll < acc) return kind
-  }
+  if (roll < BALANCE.goldenClickFrenzyChance) return 'clickFrenzy'
+  if (roll < BALANCE.goldenClickFrenzyChance + BALANCE.goldenFrenzyChance) return 'frenzy'
   return 'lucky'
 }
 
@@ -60,7 +45,7 @@ export function rollGolden(state: GameState, rng: () => number = Math.random): G
     return {
       kind,
       name: 'Frenzy',
-      note: 'The herd goes wild',
+      note: 'The herd goes wild, and so do your hands',
       goats: 0,
       buff: {
         id: 'frenzy',
@@ -85,7 +70,7 @@ export function rollGolden(state: GameState, rng: () => number = Math.random): G
         name: 'Petting Frenzy',
         icon: '✋',
         kind: 'clickMult',
-        factor: 777,
+        factor: BALANCE.goldenClickFrenzyMult,
         remaining: 13,
         duration: 13,
       },
