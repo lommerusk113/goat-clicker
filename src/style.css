@@ -930,25 +930,42 @@ body {
 }
 
 /* ----------------------------------------------------------- responsive -- */
+/* Bottom bar for narrow screens; hidden on desktop where all three columns fit. */
+.mobile-nav {
+  display: none;
+}
+
 @media (max-width: 1080px) {
-  body {
-    overflow: auto;
+  :root {
+    --nav-height: 3.4rem;
   }
 
   .game {
-    grid-template-columns: 1fr;
-    height: auto;
+    display: block;
+    height: 100vh;
+    height: 100dvh;
+    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+
+  /* One section at a time; each scrolls on its own under the bar. */
+  .pasture,
+  .middle,
+  .store {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+    border: 0;
+  }
+
+  .game[data-view='pasture'] .pasture,
+  .game[data-view='middle'] .middle,
+  .game[data-view='store'] .store {
+    display: flex;
   }
 
   .pasture {
-    min-height: 72vh;
-    border-right: 0;
-    border-bottom: 3px solid var(--soil-lo);
-  }
-
-  .store {
-    border-left: 0;
-    border-top: 3px solid var(--soil-lo);
+    overflow: hidden;
   }
 
   .store__list {
@@ -957,6 +974,42 @@ body {
 
   .tab-body {
     max-height: none;
+  }
+
+  .mobile-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: linear-gradient(180deg, #2c1e12 0%, #1d1309 100%);
+    border-top: 3px solid var(--soil-lo);
+  }
+
+  .mobile-nav__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cream-dim);
+    cursor: pointer;
+    background: none;
+    border: 0;
+    border-top: 3px solid transparent;
+  }
+
+  .mobile-nav__btn--active {
+    color: var(--gold);
+    border-top-color: var(--gold);
+    background: rgba(255, 255, 255, 0.04);
   }
 }
 

@@ -14,7 +14,7 @@
     />
   </head>
   <body>
-    <main class="game">
+    <main class="game" id="game" data-view="pasture">
       <!-- Left: the pasture, the goat, and the count -->
       <section class="pasture">
         <div class="pasture__sky" aria-hidden="true">
@@ -184,6 +184,19 @@
         <div class="store__list" id="building-list"></div>
       </aside>
     </main>
+
+    <!-- Narrow screens only: one section at a time -->
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Sections">
+      <button class="mobile-nav__btn mobile-nav__btn--active" type="button" data-view="pasture">
+        <span aria-hidden="true">🐐</span> <span id="nav-goats">Goat</span>
+      </button>
+      <button class="mobile-nav__btn" type="button" data-view="middle">
+        <span aria-hidden="true">⬆️</span> Upgrades
+      </button>
+      <button class="mobile-nav__btn" type="button" data-view="store">
+        <span aria-hidden="true">🏪</span> Store
+      </button>
+    </nav>
 
     <div class="particles" id="particles" aria-hidden="true"></div>
     <div class="goldens" id="goldens"></div>

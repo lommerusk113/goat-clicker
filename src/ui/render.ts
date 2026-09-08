@@ -1,7 +1,7 @@
 import type { BuildingId, GameState, Stats } from '../game/types'
 import { createAscend } from './ascend'
 import { byId, el, setText } from './dom'
-import { formatGoats, formatRate, formatTime } from './format'
+import { formatGoats, formatRate, formatShort, formatTime } from './format'
 import { createPanels } from './panels'
 import { createParticles } from './particles'
 import { createStore } from './store'
@@ -92,6 +92,19 @@ export function createUi(handlers: UiHandlers): Ui {
     })
   }
 
+  // --- narrow-screen section switcher ---------------------------------------
+  const game = byId('game')
+  const navGoats = byId('nav-goats')
+  const navButtons = [...byId('mobile-nav').querySelectorAll<HTMLButtonElement>('.mobile-nav__btn')]
+  for (const button of navButtons) {
+    button.addEventListener('click', () => {
+      game.dataset.view = button.dataset.view
+      for (const other of navButtons) {
+        other.classList.toggle('mobile-nav__btn--active', other === button)
+      }
+    })
+  }
+
   // --- buy amount ------------------------------------------------------------
   const amountButtons = [...byId('buy-amount').querySelectorAll<HTMLButtonElement>('.amount__btn')]
   for (const button of amountButtons) {
@@ -175,6 +188,7 @@ export function createUi(handlers: UiHandlers): Ui {
   return {
     fast(state, stats) {
       setText(countNode, formatGoats(state.goats))
+      setText(navGoats, formatShort(state.goats))
       setText(rateNode, formatRate(stats.gps))
       setText(perClickNode, formatRate(stats.perClick))
       drawBuffs(state)
