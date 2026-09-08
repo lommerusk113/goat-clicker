@@ -19,19 +19,74 @@ only packages, and all of them are dev-only.
 
 - **Petting** gathers one goat, plus whatever the petting upgrades add. Later
   upgrades make each pet worth a percentage of your per-second production.
-- **Buildings** produce goats on their own. Each unit costs 15% more than the
-  last, from the Goat Pen at 15 goats up to the Cosmic Herd at 75 billion.
-- **Upgrades** come in four families: four tiers per building (each doubling
-  that building's output), petting upgrades, golden-goat upgrades, and
-  herd-wide upgrades that scale with how many achievements you have earned.
-- **Golden goats** wander across the screen every minute or three. Catching one
+- **Buildings** produce goats on their own. Each unit costs 10% more than the
+  last, from the Scratching Post at 15 goats up to the Elder Goat at 2.5
+  quadrillion. The Scratching Post also adds to every pet, so early clicking
+  and early buildings feed each other. Each building costs about 2.4 times more
+  per goat-per-second than the one before, which is what lets milestones make
+  an old building worth buying again. The last three are priced far beyond one
+  run's production; the occult bonus from a few ascensions puts them in reach.
+- **Milestones** kick in at 200 of a building: its output quadruples there and
+  every 25 after, and every thousandth is worth ten times instead. A ×4 for
+  ×10.8 in price means each block is a worse deal than the last, so pushing an
+  old building deep is a choice, not a default; gilds are what make one shine. `VITE_SIM=1 npx vitest run src/game/sim.test.ts` prints what
+  a greedy buyer owns over time, for checking that balance after changes.
+- **Gilds** are handed out one per ascension to a random building you owned in
+  that run. Each gild adds 50% to that building's output for good, and they
+  stack, so the late game is about piling them onto one building. From the
+  Ascend tab a gild can be rerolled onto a random other building for one occult
+  point, or placed exactly for twenty. Early on, when a handful of points is a
+  big share of production, that gamble is expensive; late on it is routine.
+- **Upgrades** come in five families: eight tiers per building at 1, 5, 10,
+  25, 50, 75, 100 and 150 owned (each doubling that building's output, and its
+  click bonus if it has one), petting upgrades,
+  golden-goat upgrades, herd-wide upgrades that scale with how many
+  achievements you have earned, and occult upgrades bought with occult points.
+- **Ascending** sells the farm for occult points: goats, buildings and ordinary
+  upgrades go, achievements and occult upgrades stay. Points grow with the
+  logarithm of every goat you have ever herded, fifteen per tenfold: fifteen
+  at a billion, sixty at a trillion, a hundred and five at a quadrillion. Each unspent point
+  adds 5% to production (more with the right occult upgrades), so the second
+  run starts quicker and the fourth or fifth flies. The log is deliberate:
+  milestones make a run's output grow like a high power of that bonus, and a
+  cube-root scale on top of it runs away. Spending points on occult
+  upgrades or gilds gives up that bonus, so every purchase is a trade. Occult upgrades form a small tree that also
+  covers starting goats, golden-goat timing, and offline earnings.
+- **Golden goats** wander in every three to seven minutes and stay for forty
+  seconds, so checking in now and then is enough to catch them. Catching one
   pays a lump sum, or starts a Frenzy (×7 production) or a Petting Frenzy
   (×777 per pet).
 - **Achievements** are awarded the moment their condition is met, and feed the
-  herd-wide upgrades.
+  herd-wide upgrades. Every building has badges at 50, 100, 200, 300, 400 and
+  500 owned.
 - **Saving** happens every ten seconds, when the tab is hidden, and on close.
-  Time away pays out at half rate, capped at three hours. The Settings tab has
-  save codes for moving a game between browsers.
+  Time away pays out at half rate, capped at three hours, until occult upgrades
+  raise both. The Settings tab has save codes for moving a game between
+  browsers.
+- **Cloud sync** is optional and needs no account. Turning it on in Settings
+  mints a random sync code; entering that code on another device links it to
+  the same herd. The save is pushed once a minute and when the tab hides, and
+  pulled on load. Whichever device saved last wins, and a stale device is never
+  allowed to overwrite a newer cloud save. The code is the only key, so treat it
+  like a password.
+
+## Hosting and cloud sync
+
+The site is a static Vite build hosted on Cloudflare Pages. Cloud sync is a
+Pages Function in `functions/api/save/[token].ts` that stores one save blob per
+sync code in a KV namespace bound as `SAVES`. One-time setup:
+
+```bash
+npx wrangler kv namespace create SAVES   # prints an id
+```
+
+Paste the id into `wrangler.toml`, or bind it in the dashboard under the Pages
+project's Settings → Bindings. Without the binding the site still works; the
+sync buttons just report a failed connection. To run the function locally:
+
+```bash
+npm run build && npx wrangler pages dev dist
+```
 
 ## Layout of the code
 
@@ -39,11 +94,11 @@ only packages, and all of them are dev-only.
 src/
   game/          no DOM in here; all of it is unit tested
     types.ts        shared shapes
-    buildings.ts    the ten production lines
+    buildings.ts    the thirteen production lines
     upgrades.ts     every upgrade, including generated building tiers
     achievements.ts every achievement and its condition
     economy.ts      costs, production, per-click, aggregate stats
-    state.ts        the game state and the moves you can make on it
+    state.ts        the game state and the moves you can make on it, ascension included
     save.ts         encode, decode, migrate, offline earnings
     golden.ts       golden goat timing and rewards
     loop.ts         the tick/render split
@@ -51,9 +106,13 @@ src/
     format.ts       number and duration formatting
     store.ts        buildings and upgrades
     panels.ts       achievements and stats
+    ascend.ts       occult points, the ascend button, occult upgrades
     render.ts       the pasture, and wiring for everything else
     tooltip.ts, particles.ts, toast.ts, dom.ts
+  sync.ts        cloud save client: sync codes, pull, push
   main.ts        loads the save, runs the loop, connects game to interface
+functions/
+  api/save/[token].ts   the cloud save endpoint (Cloudflare Pages Function)
   style.css
 ```
 

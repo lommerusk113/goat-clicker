@@ -6,3 +6,6 @@ dist/
 # JetBrains project files
 .idea/
 *.iml
+
+# Wrangler local state
+.wrangler/

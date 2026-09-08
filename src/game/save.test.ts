@@ -31,6 +31,7 @@ describe('encodeSave / decodeSave', () => {
     s.totalGoats = 9_999
     s.clicks = 42
     s.buildings.barn = 7
+    s.gilds.barn = 2
     s.upgrades = ['click-handshake']
     s.achievements = ['first-goat']
     s.goldenClicks = 3
@@ -47,15 +48,25 @@ describe('encodeSave / decodeSave', () => {
   })
 
   test('fills in fields missing from an older save', () => {
-    const partial = btoa(JSON.stringify({ version: 1, goats: 5, buildings: { pen: 2 } }))
+    const partial = btoa(JSON.stringify({ version: 1, goats: 5, buildings: { post: 2 } }))
     const back = decodeSave(partial)
     expect(back).not.toBeNull()
     expect(back!.goats).toBe(5)
-    expect(back!.buildings.pen).toBe(2)
+    expect(back!.buildings.post).toBe(2)
     expect(back!.buildings.cosmos).toBe(0)
     expect(back!.upgrades).toEqual([])
     expect(back!.buffs).toEqual([])
     expect(back!.goldenClicks).toBe(0)
+    expect(back!.ascensions).toBe(0)
+    expect(back!.occult).toBe(0)
+    expect(back!.occultEarned).toBe(0)
+    expect(back!.lifetimeGoats).toBe(0)
+    expect(back!.gilds.post).toBe(0)
+  })
+
+  test('carries version 1 goat pens over as scratching posts', () => {
+    const old = btoa(JSON.stringify({ version: 1, goats: 5, buildings: { pen: 7 } }))
+    expect(decodeSave(old)!.buildings.post).toBe(7)
   })
 
   test('drops unknown building and upgrade ids', () => {
@@ -119,5 +130,11 @@ describe('offlineGain', () => {
 
   test('pays nothing without production', () => {
     expect(offlineGain(0, 3_600)).toEqual({ seconds: 3_600, goats: 0 })
+  })
+
+  test('takes a higher rate and longer cap from occult upgrades, never above full pace', () => {
+    const gain = offlineGain(10, OFFLINE_CAP_SECONDS * 2, OFFLINE_RATE * 4, OFFLINE_CAP_SECONDS * 4)
+    expect(gain.seconds).toBe(OFFLINE_CAP_SECONDS * 2)
+    expect(gain.goats).toBeCloseTo(10 * OFFLINE_CAP_SECONDS * 2)
   })
 })

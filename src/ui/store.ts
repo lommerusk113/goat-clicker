@@ -1,5 +1,6 @@
 import { BUILDINGS } from '../game/buildings'
-import { bulkCost } from '../game/economy'
+import { BALANCE } from '../game/balance'
+import { bulkCost, milestoneMult, nextMilestone } from '../game/economy'
 import { UPGRADES, availableUpgrades } from '../game/upgrades'
 import type { BuildingDef, BuildingId, GameState, Stats, UpgradeDef } from '../game/types'
 import { byId, el, setText, toggleClass } from './dom'
@@ -16,13 +17,14 @@ export interface StoreHandlers {
 /** A building stays behind "???" until the herd is within sight of its price. */
 const REVEAL_FRACTION = 0.4
 
-const TIER_NUMERALS = ['I', 'II', 'III', 'IV']
+const TIER_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
 
 const KIND_LABELS: Record<UpgradeDef['kind'], string> = {
   building: 'Building upgrade',
   click: 'Petting upgrade',
   golden: 'Golden goat upgrade',
   global: 'Herd-wide upgrade',
+  occult: 'Occult upgrade',
 }
 
 interface View {
@@ -37,6 +39,7 @@ interface Row {
   name: HTMLElement
   cost: HTMLElement
   owned: HTMLElement
+  gild: HTMLElement
 }
 
 export interface Store {
@@ -89,12 +92,26 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
       )
     }
 
+    const upcoming = nextMilestone(owned)
+    const bump = upcoming % BALANCE.milestoneBig === 0 ? BALANCE.milestoneBigMult : BALANCE.milestoneMult
+    lines.push(
+      `Next milestone at ${upcoming}: ×${bump} output` +
+        (milestoneMult(owned) > 1 ? ` (×${formatShort(milestoneMult(owned))} so far)` : '') +
+        `, then every ${BALANCE.milestoneStep}`,
+    )
+    const gilds = state.gilds[def.id]
+    if (gilds > 0) lines.push(`${gilds} gild${gilds === 1 ? '' : 's'}: +${gilds * BALANCE.gildBonus * 100}% output`)
+
+    // Building tiers double the click bonus along with production.
+    const perClick = def.baseClick ? def.baseClick * (owned > 0 ? perUnit / def.baseCps : 1) : 0
+    const clickNote = perClick > 0 ? ` and adds ${formatRate(perClick)} to every pet` : ''
+
     return {
       icon: def.icon,
       name: def.name,
       cost: `🐐 ${formatShort(price)}${count > 1 ? ` for ${count}` : ''}`,
       tooDear: state.goats < price,
-      desc: `Each one herds ${formatRate(perUnit)} goats per second.`,
+      desc: `Each one herds ${formatRate(perUnit)} goats per second${clickNote}.`,
       stats: lines,
       blurb: def.blurb,
     }
@@ -110,13 +127,14 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
     const cost = el('span', 'building__cost')
     body.append(name, cost)
     const owned = el('span', 'building__owned')
+    const gild = el('span', 'building__gild')
 
-    root.append(icon, body, owned)
+    root.append(icon, body, gild, owned)
     root.addEventListener('click', () => handlers.buyBuilding(def.id, handlers.amount()))
     tooltip.attach(root, () => buildingTip(def))
     listNode.append(root)
 
-    return { def, root, icon, name, cost, owned }
+    return { def, root, icon, name, cost, owned, gild }
   })
 
   function upgradeTip(def: UpgradeDef): TipContent {
@@ -164,6 +182,7 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
         setText(row.name, shown ? def.name : '???')
         setText(row.cost, shown ? `🐐 ${formatShort(price)}` : '???')
         setText(row.owned, owned > 0 ? String(owned) : '')
+        setText(row.gild, state.gilds[def.id] > 0 ? `✨${state.gilds[def.id]}` : '')
 
         toggleClass(row.root, 'building--hidden', !shown)
         toggleClass(row.root, 'building--short', shown && state.goats < price)

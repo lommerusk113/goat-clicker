@@ -3,11 +3,17 @@ import { costOf } from './economy'
 import { BUILDING_BY_ID } from './buildings'
 import {
   addBuff,
+  ascend,
   buyBuilding,
+  moveGild,
+  rerollGild,
   buyUpgrade,
   claimAchievements,
   createInitialState,
   earn,
+  goatsForOccultLevel,
+  occultLevel,
+  pendingOccult,
   petGoat,
   produce,
   tickBuffs,
@@ -60,40 +66,40 @@ describe('buyBuilding', () => {
   test('spends goats and adds the building', () => {
     const s = createInitialState(0)
     s.goats = 20
-    expect(buyBuilding(s, 'pen')).toBe(true)
-    expect(s.buildings.pen).toBe(1)
+    expect(buyBuilding(s, 'post')).toBe(true)
+    expect(s.buildings.post).toBe(1)
     expect(s.goats).toBe(5)
   })
 
   test('refuses when the herd cannot cover it', () => {
     const s = createInitialState(0)
     s.goats = 14
-    expect(buyBuilding(s, 'pen')).toBe(false)
-    expect(s.buildings.pen).toBe(0)
+    expect(buyBuilding(s, 'post')).toBe(false)
+    expect(s.buildings.post).toBe(0)
     expect(s.goats).toBe(14)
   })
 
   test('buys several at the escalating price', () => {
     const s = createInitialState(0)
-    const price = costOf(BUILDING_BY_ID.pen, 0) + costOf(BUILDING_BY_ID.pen, 1)
+    const price = costOf(BUILDING_BY_ID.post, 0) + costOf(BUILDING_BY_ID.post, 1)
     s.goats = price
-    expect(buyBuilding(s, 'pen', 2)).toBe(true)
-    expect(s.buildings.pen).toBe(2)
+    expect(buyBuilding(s, 'post', 2)).toBe(true)
+    expect(s.buildings.post).toBe(2)
     expect(s.goats).toBe(0)
   })
 
   test('buys nothing when it cannot afford the whole batch', () => {
     const s = createInitialState(0)
     s.goats = 20
-    expect(buyBuilding(s, 'pen', 2)).toBe(false)
-    expect(s.buildings.pen).toBe(0)
+    expect(buyBuilding(s, 'post', 2)).toBe(false)
+    expect(s.buildings.post).toBe(0)
   })
 
   test('does not count bought buildings as goats spent from nowhere', () => {
     const s = createInitialState(0)
     s.goats = 1_000
     s.totalGoats = 1_000
-    buyBuilding(s, 'pen')
+    buyBuilding(s, 'post')
     expect(s.totalGoats).toBe(1_000)
   })
 })
@@ -135,6 +141,166 @@ describe('buyUpgrade', () => {
     const s = createInitialState(0)
     s.goats = 1e12
     expect(buyUpgrade(s, 'not-a-real-upgrade')).toBe(false)
+  })
+
+  test('occult upgrades cost occult points, not goats', () => {
+    const s = createInitialState(0)
+    s.goats = 1e12
+    expect(buyUpgrade(s, 'occult-candle')).toBe(false)
+    s.occult = 1
+    expect(buyUpgrade(s, 'occult-candle')).toBe(true)
+    expect(s.occult).toBe(0)
+    expect(s.goats).toBe(1e12)
+  })
+
+  test('occult upgrades wait for the one they build on', () => {
+    const s = createInitialState(0)
+    s.occult = 100
+    expect(buyUpgrade(s, 'occult-sigil')).toBe(false)
+    buyUpgrade(s, 'occult-candle')
+    expect(buyUpgrade(s, 'occult-sigil')).toBe(true)
+  })
+})
+
+describe('occultLevel', () => {
+  test('gives fifteen points per tenfold of lifetime goats', () => {
+    expect(occultLevel(0)).toBe(0)
+    expect(occultLevel(1e8)).toBe(4)
+    expect(occultLevel(1e9)).toBe(15)
+    expect(occultLevel(1e10)).toBe(30)
+    expect(occultLevel(1e12)).toBe(60)
+    expect(occultLevel(1e20)).toBe(180)
+  })
+
+  test('inverts back to the goats needed', () => {
+    expect(occultLevel(goatsForOccultLevel(40))).toBe(40)
+    expect(occultLevel(goatsForOccultLevel(40) - 1)).toBe(39)
+  })
+})
+
+describe('ascend', () => {
+  function veteran() {
+    const s = createInitialState(0)
+    s.goats = 5e10
+    s.totalGoats = 1e11
+    s.clicks = 500
+    s.buildings.meadow = 40
+    s.upgrades = ['meadow-t1', 'occult-candle']
+    s.achievements = ['first-goat']
+    s.buffs = [buff(10)]
+    return s
+  }
+
+  test('does nothing when there is nothing to gain', () => {
+    const s = createInitialState(0)
+    s.goats = 500
+    s.totalGoats = 500
+    s.buildings.meadow = 3
+    expect(pendingOccult(s)).toBe(0)
+    expect(ascend(s)).toEqual({ occult: 0, gilded: null })
+    expect(s.buildings.meadow).toBe(3)
+    expect(s.ascensions).toBe(0)
+  })
+
+  test('banks the pending points and resets the farm', () => {
+    const s = veteran()
+    expect(pendingOccult(s)).toBe(45)
+    expect(ascend(s).occult).toBe(45)
+    expect(s.occult).toBe(45)
+    expect(s.occultEarned).toBe(45)
+    expect(s.ascensions).toBe(1)
+    expect(s.lifetimeGoats).toBe(1e11)
+    expect(s.goats).toBe(0)
+    expect(s.totalGoats).toBe(0)
+    expect(s.buildings.meadow).toBe(0)
+    expect(s.buffs).toEqual([])
+  })
+
+  test('keeps achievements, lifetime stats and occult upgrades', () => {
+    const s = veteran()
+    ascend(s)
+    expect(s.upgrades).toEqual(['occult-candle'])
+    expect(s.achievements).toEqual(['first-goat'])
+    expect(s.clicks).toBe(500)
+  })
+
+  test('only pays for goats herded since the last ascension', () => {
+    const s = veteran()
+    ascend(s)
+    s.totalGoats = 1e11
+    // 2e11 lifetime is level 49, and 45 of those are already banked.
+    expect(pendingOccult(s)).toBe(4)
+    expect(ascend(s).occult).toBe(4)
+    expect(s.occultEarned).toBe(49)
+  })
+
+  test('starts the new herd with whatever the occult upgrades grant', () => {
+    const s = veteran()
+    s.upgrades.push('occult-ashes')
+    ascend(s)
+    expect(s.goats).toBe(10_000)
+  })
+
+  test('gilds one of the buildings owned this run, and gilds survive', () => {
+    const s = veteran()
+    s.buildings.barn = 1
+    // Owned: meadow, barn. A roll of 0.9 lands on the last of them.
+    expect(ascend(s, () => 0.9)).toEqual({ occult: 45, gilded: 'barn' })
+    expect(s.gilds.barn).toBe(1)
+    s.totalGoats = 1e11
+    s.buildings.meadow = 1
+    expect(ascend(s, () => 0).gilded).toBe('meadow')
+    expect(s.gilds).toMatchObject({ barn: 1, meadow: 1 })
+  })
+})
+
+describe('moveGild', () => {
+  test('moves one gild for occult points', () => {
+    const s = createInitialState(0)
+    s.gilds.meadow = 2
+    s.occult = 25
+    expect(moveGild(s, 'meadow', 'cosmos')).toBe(true)
+    expect(s.gilds).toMatchObject({ meadow: 1, cosmos: 1 })
+    expect(s.occult).toBe(5)
+  })
+
+  test('refuses without a gild to move, without the points, or to the same building', () => {
+    const s = createInitialState(0)
+    s.gilds.meadow = 1
+    s.occult = 19
+    expect(moveGild(s, 'meadow', 'cosmos')).toBe(false)
+    s.occult = 100
+    expect(moveGild(s, 'barn', 'cosmos')).toBe(false)
+    expect(moveGild(s, 'meadow', 'meadow')).toBe(false)
+    expect(s.occult).toBe(100)
+  })
+})
+
+describe('rerollGild', () => {
+  test('throws a gild onto a random other building for one point', () => {
+    const s = createInitialState(0)
+    s.gilds.post = 1
+    s.occult = 3
+    // Roll 0 picks the first building that is not the source.
+    expect(rerollGild(s, 'post', () => 0)).toBe('meadow')
+    expect(s.gilds).toMatchObject({ post: 0, meadow: 1 })
+    expect(s.occult).toBe(2)
+  })
+
+  test('never lands back on the source', () => {
+    const s = createInitialState(0)
+    s.gilds.meadow = 1
+    s.occult = 1
+    expect(rerollGild(s, 'meadow', () => 0)).toBe('post')
+  })
+
+  test('refuses without a gild or a point', () => {
+    const s = createInitialState(0)
+    s.occult = 5
+    expect(rerollGild(s, 'meadow')).toBeNull()
+    s.gilds.meadow = 1
+    s.occult = 0
+    expect(rerollGild(s, 'meadow')).toBeNull()
   })
 })
 

@@ -1,4 +1,5 @@
 import type { BuildingId, GameState, Stats } from '../game/types'
+import { createAscend } from './ascend'
 import { byId, el, setText } from './dom'
 import { formatGoats, formatRate, formatTime } from './format'
 import { createPanels } from './panels'
@@ -16,10 +17,16 @@ export interface UiHandlers {
   pet(): number
   buyBuilding(id: BuildingId, count: number): void
   buyUpgrade(id: string): void
+  ascend(): void
+  moveGild(from: BuildingId, to: BuildingId): void
+  rerollGild(from: BuildingId): void
   saveNow(): void
   exportSave(): void
   importSave(code: string): void
   wipeSave(): void
+  enableSync(): void
+  linkSync(code: string): void
+  disableSync(): void
 }
 
 export interface Ui {
@@ -32,6 +39,8 @@ export interface Ui {
   showGolden(lifetime: number, onCatch: () => string): void
   status(message: string): void
   welcome(seconds: number, goats: number): void
+  /** Shows the cloud sync section for the given code, or the "turn on" state for null. */
+  sync(token: string | null): void
 }
 
 export function createUi(handlers: UiHandlers): Ui {
@@ -46,6 +55,12 @@ export function createUi(handlers: UiHandlers): Ui {
     buyUpgrade: handlers.buyUpgrade,
   })
   const panels = createPanels(tooltip)
+  const ascendPanel = createAscend(tooltip, {
+    buyUpgrade: handlers.buyUpgrade,
+    ascend: handlers.ascend,
+    moveGild: handlers.moveGild,
+    rerollGild: handlers.rerollGild,
+  })
 
   const countNode = byId('goat-count')
   const rateNode = byId('goat-rate')
@@ -94,6 +109,21 @@ export function createUi(handlers: UiHandlers): Ui {
   byId('btn-wipe').addEventListener('click', handlers.wipeSave)
   const importBox = byId<HTMLTextAreaElement>('import-box')
   byId('btn-import').addEventListener('click', () => handlers.importSave(importBox.value))
+
+  // --- cloud sync ------------------------------------------------------------
+  const syncOff = byId('sync-off')
+  const syncOn = byId('sync-on')
+  const syncCode = byId('sync-code')
+  const syncLinkBox = byId<HTMLInputElement>('sync-link-box')
+  byId('btn-sync-enable').addEventListener('click', handlers.enableSync)
+  byId('btn-sync-link').addEventListener('click', () => handlers.linkSync(syncLinkBox.value))
+  byId('btn-sync-disable').addEventListener('click', handlers.disableSync)
+  byId('btn-sync-copy').addEventListener('click', () => {
+    navigator.clipboard?.writeText(syncCode.textContent ?? '').then(
+      () => setText(statusNode, 'Sync code copied.'),
+      () => setText(statusNode, 'Could not reach the clipboard. Copy the code by hand.'),
+    )
+  })
 
   // --- welcome back ----------------------------------------------------------
   const welcomeNode = byId('welcome')
@@ -154,6 +184,7 @@ export function createUi(handlers: UiHandlers): Ui {
     slow(state, stats) {
       store.update(state, stats)
       panels.update(state, stats)
+      ascendPanel.update(state)
     },
 
     toast: toasts.show,
@@ -192,6 +223,12 @@ export function createUi(handlers: UiHandlers): Ui {
       setText(byId('welcome-time'), formatTime(seconds))
       setText(byId('welcome-goats'), `${formatGoats(goats)} goats`)
       welcomeNode.hidden = false
+    },
+
+    sync(token) {
+      syncOff.hidden = token !== null
+      syncOn.hidden = token === null
+      setText(syncCode, token ?? '')
     },
   }
 }

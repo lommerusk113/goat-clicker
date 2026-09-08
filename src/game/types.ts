@@ -1,5 +1,5 @@
 export type BuildingId =
-  | 'pen'
+  | 'post'
   | 'meadow'
   | 'barn'
   | 'dairy'
@@ -9,6 +9,9 @@ export type BuildingId =
   | 'portal'
   | 'temple'
   | 'cosmos'
+  | 'circle'
+  | 'void'
+  | 'elder'
 
 export interface BuildingDef {
   id: BuildingId
@@ -16,11 +19,13 @@ export interface BuildingDef {
   icon: string
   baseCost: number
   baseCps: number
+  /** Flat goats each unit adds to every manual click. */
+  baseClick?: number
   /** Flavour text shown in the tooltip. */
   blurb: string
 }
 
-export type UpgradeKind = 'building' | 'click' | 'golden' | 'global'
+export type UpgradeKind = 'building' | 'click' | 'golden' | 'global' | 'occult'
 
 export type Effect =
   /** Multiplies one building's output. */
@@ -41,6 +46,14 @@ export type Effect =
   | { type: 'goldenLife'; factor: number }
   /** Multiplies golden goat rewards. */
   | { type: 'goldenPower'; factor: number }
+  /** Adds to the production percentage each occult point grants. */
+  | { type: 'occultPercent'; percent: number }
+  /** Multiplies the share of production earned while the tab is closed. */
+  | { type: 'offlineRate'; factor: number }
+  /** Multiplies how long time away keeps counting. */
+  | { type: 'offlineCap'; factor: number }
+  /** Goats the herd starts each ascension with. */
+  | { type: 'startGoats'; amount: number }
 
 export interface UpgradeDef {
   id: string
@@ -52,6 +65,8 @@ export interface UpgradeDef {
   /** Flavour text. */
   blurb: string
   kind: UpgradeKind
+  /** Occult upgrades: id of the upgrade that must be owned first. */
+  requires?: string
   building?: BuildingId
   /** Which of a building's upgrade tiers this is, 1-based. */
   tier?: number
@@ -91,7 +106,18 @@ export interface GameState {
   goatsFromClicks: number
   clicks: number
   goldenClicks: number
+  /** Times the farm has been given up for occult points. */
+  ascensions: number
+  /** Occult points not yet spent. Each one boosts production, so spending is a trade. */
+  occult: number
+  /** Occult points ever earned, for achievements. */
+  occultEarned: number
+  /** Goats herded in every finished run before this one. */
+  lifetimeGoats: number
   buildings: Record<BuildingId, number>
+  /** Gilds on each building. One is handed out per ascension and they never reset. */
+  gilds: Record<BuildingId, number>
+  /** Bought upgrades. Occult ones survive ascension, the rest do not. */
   upgrades: string[]
   achievements: string[]
   buffs: Buff[]

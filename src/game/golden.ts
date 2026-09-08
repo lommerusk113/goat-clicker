@@ -2,11 +2,15 @@ import { baseGoatsPerSecond, multipliers } from './economy'
 import type { Multipliers } from './economy'
 import type { Buff, GameState } from './types'
 
-/** Seconds between golden goats, before upgrades. */
-export const GOLDEN_MIN_DELAY = 60
-export const GOLDEN_MAX_DELAY = 180
+/**
+ * Seconds between golden goats, before upgrades. Rare enough that the game
+ * stays idle, and they linger long enough that glancing back now and then is
+ * all it takes to catch one.
+ */
+export const GOLDEN_MIN_DELAY = 150
+export const GOLDEN_MAX_DELAY = 400
 /** Seconds a golden goat sticks around, before upgrades. */
-export const GOLDEN_LIFETIME = 13
+export const GOLDEN_LIFETIME = 40
 
 export type GoldenKind = 'lucky' | 'frenzy' | 'clickFrenzy'
 

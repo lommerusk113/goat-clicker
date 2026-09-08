@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS } from '../game/achievements'
+import { pendingOccult } from '../game/state'
 import { UPGRADES } from '../game/upgrades'
 import type { AchievementDef, GameState, Stats } from '../game/types'
 import { byId, el, setText, toggleClass } from './dom'
@@ -63,6 +64,13 @@ export function createPanels(tooltip: Tooltip): Panels {
 
       section('Luck'),
       ...row('Golden goats caught', s.goldenClicks.toLocaleString('en-US')),
+
+      section('Ascension'),
+      ...row('Ascensions', s.ascensions.toLocaleString('en-US')),
+      ...row('Occult points', s.occult.toLocaleString('en-US')),
+      ...row('Occult earned, all told', s.occultEarned.toLocaleString('en-US')),
+      ...row('Waiting to be claimed', pendingOccult(s).toLocaleString('en-US')),
+      ...row('Herded in past lives', formatGoats(s.lifetimeGoats)),
 
       section('Time'),
       ...row('Playing for', formatTime(s.playTime)),

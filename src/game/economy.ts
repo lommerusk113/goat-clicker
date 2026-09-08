@@ -1,12 +1,29 @@
+import { BALANCE } from './balance'
 import { BUILDINGS, BUILDING_IDS } from './buildings'
 import { UPGRADE_BY_ID } from './upgrades'
 import type { BuildingDef, BuildingId, GameState, Stats } from './types'
 
-/** Each unit of a building costs 15% more than the last. */
-export const COST_GROWTH = 1.15
+/**
+ * Output multiplier a building earns just from how many are owned: ×4 at 200
+ * and every 25 after, ×10 instead at every thousandth.
+ */
+export function milestoneMult(owned: number): number {
+  const { milestoneStart, milestoneStep, milestoneMult, milestoneBig, milestoneBigMult } = BALANCE
+  if (owned < milestoneStart) return 1
+  const steps = Math.floor((owned - milestoneStart) / milestoneStep) + 1
+  const big = Math.floor(owned / milestoneBig) - Math.floor((milestoneStart - 1) / milestoneBig)
+  return milestoneMult ** (steps - big) * milestoneBigMult ** big
+}
+
+/** The next count at which a building's milestone multiplier grows. */
+export function nextMilestone(owned: number): number {
+  const { milestoneStart, milestoneStep } = BALANCE
+  if (owned < milestoneStart) return milestoneStart
+  return owned - ((owned - milestoneStart) % milestoneStep) + milestoneStep
+}
 
 export function costOf(def: BuildingDef, owned: number): number {
-  return Math.ceil(def.baseCost * COST_GROWTH ** owned)
+  return Math.ceil(def.baseCost * BALANCE.costGrowth ** owned)
 }
 
 /** Price of the next `count` units, at their escalating prices. */
@@ -31,7 +48,13 @@ export interface Multipliers {
   goldenFreq: number
   goldenLife: number
   goldenPower: number
+  /** Production bonus per occult point earned, in percent. */
+  occultPercent: number
+  offlineRate: number
+  offlineCap: number
+  startGoats: number
 }
+
 
 /** Everything the player's purchased upgrades add up to. */
 export function multipliers(state: GameState): Multipliers {
@@ -48,6 +71,10 @@ export function multipliers(state: GameState): Multipliers {
     goldenFreq: 1,
     goldenLife: 1,
     goldenPower: 1,
+    occultPercent: BALANCE.occultBasePercent,
+    offlineRate: 1,
+    offlineCap: 1,
+    startGoats: 0,
   }
 
   for (const id of state.upgrades) {
@@ -82,8 +109,25 @@ export function multipliers(state: GameState): Multipliers {
       case 'goldenPower':
         m.goldenPower *= e.factor
         break
+      case 'occultPercent':
+        m.occultPercent += e.percent
+        break
+      case 'offlineRate':
+        m.offlineRate *= e.factor
+        break
+      case 'offlineCap':
+        m.offlineCap *= e.factor
+        break
+      case 'startGoats':
+        m.startGoats += e.amount
+        break
     }
   }
+  for (const id of BUILDING_IDS) {
+    m.building[id] *= milestoneMult(state.buildings[id]) * (1 + BALANCE.gildBonus * state.gilds[id])
+  }
+  // Unspent points only: every reroll or occult upgrade is paid for in production.
+  m.global *= 1 + (state.occult * m.occultPercent) / 100
   return m
 }
 
@@ -104,8 +148,17 @@ export function goatsPerSecond(state: GameState, m = multipliers(state)): number
   return baseGoatsPerSecond(state, m) * buffMult(state, 'gpsMult')
 }
 
+/** Flat click bonus from buildings such as the Scratching Post. */
+export function clickFromBuildings(state: GameState, m = multipliers(state)): number {
+  let flat = 0
+  for (const b of BUILDINGS) {
+    if (b.baseClick) flat += state.buildings[b.id] * b.baseClick * m.building[b.id]
+  }
+  return flat
+}
+
 export function goatsPerClick(state: GameState, m = multipliers(state)): number {
-  const flat = (1 + m.clickFlat) * m.clickMult * m.global
+  const flat = (1 + m.clickFlat + clickFromBuildings(state, m)) * m.clickMult * m.global
   const share = (baseGoatsPerSecond(state, m) * m.clickCpsPercent) / 100
   return (flat + share) * buffMult(state, 'clickMult')
 }

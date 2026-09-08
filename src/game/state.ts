@@ -1,10 +1,11 @@
 import { newlyEarned } from './achievements'
+import { BALANCE } from './balance'
 import { BUILDING_BY_ID, BUILDING_IDS } from './buildings'
-import { bulkCost, goatsPerClick, goatsPerSecond } from './economy'
+import { bulkCost, goatsPerClick, goatsPerSecond, multipliers } from './economy'
 import { UPGRADE_BY_ID } from './upgrades'
 import type { AchievementDef, Buff, BuildingId, GameState } from './types'
 
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 
 /** Seconds before the first golden goat can wander in. */
 export const FIRST_GOLDEN_DELAY = 90
@@ -21,7 +22,12 @@ export function createInitialState(now: number): GameState {
     goatsFromClicks: 0,
     clicks: 0,
     goldenClicks: 0,
+    ascensions: 0,
+    occult: 0,
+    occultEarned: 0,
+    lifetimeGoats: 0,
     buildings: emptyBuildings(),
+    gilds: emptyBuildings(),
     upgrades: [],
     achievements: [],
     buffs: [],
@@ -68,10 +74,100 @@ export function buyUpgrade(state: GameState, id: string): boolean {
   if (!def) return false
   if (state.upgrades.includes(id)) return false
   if (!def.unlocked(state)) return false
-  if (state.goats < def.cost) return false
-  state.goats -= def.cost
+  // Occult upgrades are paid for in occult points, everything else in goats.
+  const wallet = def.kind === 'occult' ? 'occult' : 'goats'
+  if (state[wallet] < def.cost) return false
+  state[wallet] -= def.cost
   state.upgrades.push(id)
   return true
+}
+
+/**
+ * Occult points a lifetime of `goats` is worth: so many per order of magnitude
+ * past the occult unit, so a trillion is forty. Logarithmic on purpose.
+ * Milestones make production nearly linear in wealth, so a run's goats grow
+ * like a high power of the occult bonus; a root of that (the classic cube
+ * root) runs away, a log does not.
+ */
+export function occultLevel(goats: number): number {
+  return Math.floor(BALANCE.occultPerDecade * Math.log10(1 + goats / BALANCE.occultUnit))
+}
+
+/** Lifetime goats needed to be worth `level` occult points. */
+export function goatsForOccultLevel(level: number): number {
+  return BALANCE.occultUnit * (10 ** (level / BALANCE.occultPerDecade) - 1)
+}
+
+/** Occult points ascending right now would grant. */
+export function pendingOccult(state: GameState): number {
+  return occultLevel(state.lifetimeGoats + state.totalGoats) - state.occultEarned
+}
+
+
+export interface Ascension {
+  /** Occult points gained. Zero means nothing happened. */
+  occult: number
+  /** Building that received this ascension's gild. */
+  gilded: BuildingId | null
+}
+
+/**
+ * Gives up the farm for occult points and a gild on one building owned this
+ * run. Buildings, goats and ordinary upgrades go; achievements, occult
+ * upgrades, gilds and lifetime stats stay.
+ */
+export function ascend(state: GameState, rng: () => number = Math.random): Ascension {
+  const gain = pendingOccult(state)
+  if (gain <= 0) return { occult: 0, gilded: null }
+
+  const owned = BUILDING_IDS.filter((id) => state.buildings[id] > 0)
+  const gilded = owned.length > 0 ? owned[Math.floor(rng() * owned.length)] : BUILDING_IDS[0]
+  state.gilds[gilded] += 1
+
+  state.lifetimeGoats += state.totalGoats
+  state.occultEarned += gain
+  state.occult += gain
+  state.ascensions += 1
+
+  state.goats = 0
+  state.totalGoats = 0
+  state.buildings = emptyBuildings()
+  state.upgrades = state.upgrades.filter((id) => UPGRADE_BY_ID.get(id)?.kind === 'occult')
+  state.buffs = []
+  state.goldenTimer = FIRST_GOLDEN_DELAY
+
+  earn(state, multipliers(state).startGoats)
+  return { occult: gain, gilded }
+}
+
+function shiftGild(state: GameState, from: BuildingId, to: BuildingId, cost: number): boolean {
+  if (from === to) return false
+  if (state.gilds[from] < 1) return false
+  if (state.occult < cost) return false
+  state.occult -= cost
+  state.gilds[from] -= 1
+  state.gilds[to] += 1
+  return true
+}
+
+/** Moves one gild to a chosen building, at the dear price. */
+export function moveGild(state: GameState, from: BuildingId, to: BuildingId): boolean {
+  return shiftGild(state, from, to, BALANCE.gildMoveCost)
+}
+
+/**
+ * Throws one gild onto a random other building, at the cheap price. Landing on
+ * a chosen building takes twelve tries on average, so the gamble is cheaper
+ * than a move but far from certain. Returns where it landed.
+ */
+export function rerollGild(
+  state: GameState,
+  from: BuildingId,
+  rng: () => number = Math.random,
+): BuildingId | null {
+  const others = BUILDING_IDS.filter((id) => id !== from)
+  const to = others[Math.floor(rng() * others.length)]
+  return shiftGild(state, from, to, BALANCE.gildRerollCost) ? to : null
 }
 
 /** Starts a buff, or refreshes it if one of the same kind is already running. */

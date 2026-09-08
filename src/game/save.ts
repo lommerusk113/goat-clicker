@@ -74,6 +74,12 @@ function migrate(raw: Record<string, unknown>): GameState {
 
   const buildings = base.buildings
   for (const id of BUILDING_IDS) buildings[id] = Math.max(0, Math.floor(num(savedBuildings[id], 0)))
+  // Version 1 saves called the starter building a pen.
+  if (savedBuildings.post === undefined) buildings.post = Math.max(0, Math.floor(num(savedBuildings.pen, 0)))
+
+  const savedGilds = (raw.gilds ?? {}) as Record<string, unknown>
+  const gilds = base.gilds
+  for (const id of BUILDING_IDS) gilds[id] = Math.max(0, Math.floor(num(savedGilds[id], 0)))
 
   return {
     version: SAVE_VERSION,
@@ -82,7 +88,12 @@ function migrate(raw: Record<string, unknown>): GameState {
     goatsFromClicks: Math.max(0, num(raw.goatsFromClicks, 0)),
     clicks: Math.max(0, num(raw.clicks, 0)),
     goldenClicks: Math.max(0, num(raw.goldenClicks, 0)),
+    ascensions: Math.max(0, Math.floor(num(raw.ascensions, 0))),
+    occult: Math.max(0, Math.floor(num(raw.occult, 0))),
+    occultEarned: Math.max(0, Math.floor(num(raw.occultEarned, 0))),
+    lifetimeGoats: Math.max(0, num(raw.lifetimeGoats, 0)),
     buildings,
+    gilds,
     upgrades: ids(raw.upgrades, (id) => UPGRADE_BY_ID.has(id)),
     achievements: ids(raw.achievements, (id) => ACHIEVEMENT_IDS.has(id)),
     buffs: buffs(raw.buffs),
@@ -120,11 +131,13 @@ export function clearGame(storage: Storage): void {
   storage.removeItem(SAVE_KEY)
 }
 
-/** What the herd produced while the tab was closed. */
-export function offlineGain(gps: number, elapsedSeconds: number): {
-  seconds: number
-  goats: number
-} {
-  const seconds = Math.min(Math.max(elapsedSeconds, 0), OFFLINE_CAP_SECONDS)
-  return { seconds, goats: gps * seconds * OFFLINE_RATE }
+/** What the herd produced while the tab was closed. Occult upgrades raise the rate and cap. */
+export function offlineGain(
+  gps: number,
+  elapsedSeconds: number,
+  rate = OFFLINE_RATE,
+  capSeconds = OFFLINE_CAP_SECONDS,
+): { seconds: number; goats: number } {
+  const seconds = Math.min(Math.max(elapsedSeconds, 0), capSeconds)
+  return { seconds, goats: gps * seconds * Math.min(rate, 1) }
 }

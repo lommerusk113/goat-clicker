@@ -56,6 +56,9 @@
           <button class="tab tab--active" type="button" data-tab="achievements">
             Achievements <span class="tab__badge" id="achievement-tally">0/0</span>
           </button>
+          <button class="tab" type="button" data-tab="ascend">
+            Ascend <span class="tab__badge tab__badge--occult" id="ascend-tally" hidden></span>
+          </button>
           <button class="tab" type="button" data-tab="stats">Stats</button>
           <button class="tab" type="button" data-tab="settings">Settings</button>
         </nav>
@@ -63,6 +66,53 @@
         <div class="tab-body">
           <div class="tab-pane tab-pane--active" id="pane-achievements">
             <div class="badge-grid" id="badge-grid"></div>
+          </div>
+
+          <div class="tab-pane" id="pane-ascend">
+            <div class="ascend">
+              <div class="ascend__numbers">
+                <div class="ascend__stat">
+                  <span class="ascend__value" id="occult-points">0</span>
+                  <span class="ascend__key">occult points to spend</span>
+                </div>
+                <div class="ascend__stat">
+                  <span class="ascend__value" id="occult-bonus">+0%</span>
+                  <span class="ascend__key">production from unspent points</span>
+                </div>
+              </div>
+              <div class="ascend__offer">
+                <p class="ascend__note">
+                  Ascending sells the farm: goats, buildings and ordinary upgrades all go.
+                  In return you gain <strong id="occult-pending">+0</strong> occult points.
+                  Every unspent point boosts production, so spending them is a trade.
+                </p>
+                <p class="ascend__next" id="occult-next"></p>
+                <button class="btn btn--occult" type="button" id="btn-ascend" disabled>Ascend</button>
+              </div>
+              <div class="panel-head">
+                <h2 class="panel-head__title">Occult upgrades</h2>
+                <p class="panel-head__hint">Paid in occult points. Kept forever.</p>
+              </div>
+              <div class="upgrade-grid" id="occult-grid"></div>
+
+              <div class="panel-head">
+                <h2 class="panel-head__title">Gilds</h2>
+                <p class="panel-head__hint">One per ascension, on a building you owned. +50% each, stacking.</p>
+              </div>
+              <div class="gild-list" id="gild-list"></div>
+              <div class="gild-move">
+                <label class="sr-only" for="gild-from">Take a gild from</label>
+                <select class="select" id="gild-from"></select>
+                <button class="btn" type="button" id="btn-gild-reroll" disabled>Reroll</button>
+                <span class="gild-move__arrow" aria-hidden="true">or</span>
+                <label class="sr-only" for="gild-to">Move the gild to</label>
+                <select class="select" id="gild-to"></select>
+                <button class="btn" type="button" id="btn-gild-move" disabled>Move here</button>
+              </div>
+              <p class="ascend__next">
+                A reroll lands on any other building at random. Twelve tries on average to hit the one you want, against twenty points to place it outright.
+              </p>
+            </div>
           </div>
 
           <div class="tab-pane" id="pane-stats">
@@ -85,6 +135,35 @@
                 <button class="btn btn--danger" type="button" id="btn-wipe">Sell the farm</button>
               </div>
               <p class="settings__status" id="settings-status" role="status"></p>
+
+              <div class="panel-head">
+                <h2 class="panel-head__title">Cloud sync</h2>
+                <p class="panel-head__hint">One herd across devices. No account, just a code.</p>
+              </div>
+              <div id="sync-off">
+                <p class="settings__note">
+                  Turn on cloud sync to get a sync code. Enter the same code on another device and
+                  both play the same herd; whichever saved last wins.
+                </p>
+                <div class="settings__row">
+                  <button class="btn" type="button" id="btn-sync-enable">Turn on cloud sync</button>
+                </div>
+                <label class="settings__label" for="sync-link-box">Or enter a sync code from another device</label>
+                <div class="settings__row">
+                  <input class="settings__box settings__box--line" id="sync-link-box" spellcheck="false" autocomplete="off" />
+                  <button class="btn" type="button" id="btn-sync-link">Link</button>
+                </div>
+              </div>
+              <div id="sync-on" hidden>
+                <p class="settings__note">
+                  Syncing. Your sync code is the key to this herd, so keep it to yourself:
+                </p>
+                <p class="sync-code" id="sync-code"></p>
+                <div class="settings__row">
+                  <button class="btn" type="button" id="btn-sync-copy">Copy sync code</button>
+                  <button class="btn btn--danger" type="button" id="btn-sync-disable">Turn off on this device</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -116,7 +195,7 @@
         <h2 class="welcome__title" id="welcome-title">The herd kept busy</h2>
         <p class="welcome__body">
           You were away <strong id="welcome-time">a while</strong>. The goats gathered
-          <strong id="welcome-goats">0</strong> more at half pace.
+          <strong id="welcome-goats">0</strong> more while you were gone.
         </p>
         <button class="btn" type="button" id="welcome-ok">Back to work</button>
       </div>

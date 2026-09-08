@@ -1,72 +1,146 @@
 import { BUILDINGS } from './buildings'
 import type { BuildingId, GameState, UpgradeDef } from './types'
 
-/** Units owned of a building before its next upgrade tier appears. */
-const TIER_THRESHOLDS = [1, 10, 25, 50]
-/** Tier cost as a multiple of the building's base cost. */
-const TIER_COST_FACTORS = [10, 200, 4_000, 80_000]
+/**
+ * Units owned of a building before its next upgrade tier appears. All tiers
+ * sit below the first milestone at 200 on purpose: tiers that unlock deep into
+ * the milestone ladder would reward pushing one cheap building forever.
+ */
+const TIER_THRESHOLDS = [1, 5, 10, 25, 50, 75, 100, 150]
+/** Tier cost as a multiple of the building's base cost, roughly what the units so far cost at 10% growth. */
+const TIER_COST_FACTORS = [10, 20, 50, 200, 2_000, 20_000, 200_000, 20_000_000]
 
-/** Four upgrade tiers per building: [name, flavour text]. */
+/** Eight upgrade tiers per building: [name, flavour text]. */
 const TIERS: Record<BuildingId, [string, string][]> = {
-  pen: [
-    ['Sturdier Planks', 'Rated for one determined goat. There are several.'],
-    ['Rope Latches', 'Takes a goat almost four seconds to open.'],
-    ['Self-Repairing Fence', 'Rebuilds itself nightly. Loses anyway.'],
-    ['Fence That Learns', 'It has started anticipating the headbutts.'],
+  post: [
+    ['Rougher Bark', 'The good kind of splinter, apparently.'],
+    ['Second Post', 'Cuts the queue in half. The queue doubles.'],
+    ['Rotating Brush', 'Car wash technology, goat wash pricing.'],
+    ['The Perfect Angle', 'Found by accident. Guarded by a very smug goat.'],
+    ['Queue Management', 'Take a number. The goats eat the numbers.'],
+    ['Velvet Post', 'Luxurious. Ruined within the hour. Worth it.'],
+    ['Post Office', 'A post for every goat, and a goat on every post.'],
+    ['The One True Post', 'Pilgrims come from other pastures to be scratched by it.'],
   ],
   meadow: [
     ['Clover Patches', 'Four leaves, statistically speaking.'],
     ['Rotational Grazing', 'The grass gets a weekend.'],
     ['Sprinkler Ring', 'Half irrigation, half water feature.'],
     ['Eternal Spring', 'The meadow has stopped acknowledging winter.'],
+    ['Wildflower Edge', 'Bees moved in. The goats ate the bees\' flowers politely.'],
+    ['Second Growth', 'Grass that grows back before it has finished being eaten.'],
+    ['Endless Acre', 'Walk it end to end and arrive where you started, fed.'],
+    ['Meadow Without End', 'Cartographers gave up. The goats did not.'],
   ],
   barn: [
     ['Fresh Straw', 'Changed daily. Eaten hourly.'],
     ['Loft Ladder', 'For the goats who insist on the top shelf.'],
     ['Heated Floors', 'Underfloor warmth, overfloor sprawling.'],
     ['Barn Cathedral', 'Vaulted ceilings. Excellent bleat reverb.'],
+    ['Second Storey', 'Goats upstairs. Goats downstairs. Goats on the stairs.'],
+    ['Barn Raising', 'The whole herd helped. Mostly by standing on the planks.'],
+    ['Barn Dance', 'Saturdays. Hooves only. No sheep.'],
+    ['Barn of Barns', 'A barn so large it contains the other barns.'],
   ],
   dairy: [
     ['Copper Vats', 'Shinier milk is better milk. Somehow.'],
     ['Cave Ageing', 'Two years in the dark, worth every day.'],
     ['Rind Wax Robots', 'Tireless, precise, faintly smug.'],
     ['Cheese Singularity', 'A wheel so dense it has its own weather.'],
+    ['Blue Veins', 'The good mould. Probably the good mould.'],
+    ['Export Licence', 'Cheese leaves. Goats arrive. Nobody asks how.'],
+    ['Cheese Vault', 'Guarded around the clock, by goats, from goats.'],
+    ['Rind of Ages', 'Started before the farm. Will be ready after it.'],
   ],
   yoga: [
     ['Thicker Mats', 'Absorbs hooves and dignity alike.'],
     ['Sunrise Sessions', 'Nobody is a morning person. The goats are.'],
     ['Celebrity Instructor', 'Was famous once. Is now mostly stood on.'],
     ['Transcendent Downward Goat', 'The pose holds you.'],
+    ['Hot Goat Yoga', 'Same goats, warmer room, damper humans.'],
+    ['Retreat Weekends', 'Three days in the hills. The goats lead the hikes.'],
+    ['Franchise Rights', 'A studio in every town. A goat in every studio.'],
+    ['Inner Bleat', 'You have found it. It sounds exactly like you feared.'],
   ],
   ranch: [
     ['Switchback Trails', 'The long way up, taken at a sprint.'],
     ['Cliffside Salt Licks', 'Placed impossibly. Reached anyway.'],
     ['Cable Car', 'The goats ride on the roof.'],
     ['Summit Deed', 'You own the mountain. The goats own you.'],
+    ['Alpine Huts', 'Warm, dry, and standing on by morning.'],
+    ['Avalanche Insurance', 'Pays out in goats. The claims are frequent.'],
+    ['Peak Bagging', 'Every summit in the range, climbed for the view of the grass.'],
+    ['Above the Weather', 'The clouds are below. The goats are above them, chewing.'],
   ],
   lab: [
     ['Sharper Pipettes', 'Fewer spills, more goats.'],
     ['Redundant Genomes', 'Two copies of everything, stubbornness included.'],
     ['Batch Incubators', 'Ninety-six kids at a time, all shouting.'],
     ['Recursive Kids', 'Each goat contains a slightly smaller goat.'],
+    ['Gene Library', 'Every goat ever, alphabetised by stubbornness.'],
+    ['Overnight Batches', 'Go home. Come back. Herd.'],
+    ['Copy Room', 'It hums. Goats come out of it. Do not stand in front of it.'],
+    ['Infinite Kids', 'The lab has stopped counting. So has the lab\'s accountant.'],
   ],
   portal: [
     ['Stabilised Rim', 'No more goats arriving inside-out.'],
     ['Two-Way Traffic', 'Something is grazing on the other side, too.'],
     ['Wider Aperture', 'Now admits the really enormous ones.'],
     ['Portal Network', 'Every pasture, one hop away.'],
+    ['Frequent Flyer Herd', 'Loyalty points redeemable in hay.'],
+    ['Portal Toll Booth', 'One goat per crossing. They pay in goats. It works out.'],
+    ['Hub Dimension', 'All portals lead here. Here is a field. The field is full.'],
+    ['Everywhere at Once', 'The herd has stopped being in a place.'],
   ],
   temple: [
     ['Brass Cowbells', 'Tuned to the sacred pitch of complaint.'],
     ['Harmonic Nave', 'One bleat, held for a liturgical hour.'],
     ['Choir of a Thousand', 'Not one note between them. It works.'],
     ['The Long Note', 'Begun generations ago. Not yet finished.'],
+    ['Bell Tower', 'Rings at dawn. The goats ring it. Dawn is negotiable.'],
+    ['Pilgrim Route', 'A road of worn hooves leading to a very loud building.'],
+    ['High Holy Bleat', 'One day a year the note changes. Nobody knows why.'],
+    ['The Note Eternal', 'It has outlasted the walls. The walls were only ever decorative.'],
   ],
   cosmos: [
     ['Orbital Fodder', 'Hay, in a slowly decaying orbit.'],
     ['Gravity Wells', 'Keeps the herd from wandering off past Neptune.'],
     ['Nebula Pastures', 'Grazing measured in light-years.'],
     ['Galactic Stampede', 'Visible from other galaxies.'],
+    ['Comet Fodder', 'Frozen hay, delivered on a very long orbit.'],
+    ['Dark Pasture Matter', 'Cannot be seen. Is definitely being grazed.'],
+    ['Herd Nebula', 'A cloud of gas and dust, shaped like determination.'],
+    ['Heat Death Postponed', 'The universe wanted to stop. The goats were not done.'],
+  ],
+  circle: [
+    ['Beeswax Candles', 'Burn slower. Smell faintly of hay.'],
+    ['Chalk of the Old Farm', 'Ground from the first fence post ever chewed.'],
+    ['Thirteenth Goat', 'Stands in the middle. Knows why.'],
+    ['Closed Circle', 'Nobody remembers opening it.'],
+    ['Twenty-Six Candles', 'Twice the light. The same hum, an octave lower.'],
+    ['Second Ring', 'Drawn around the first. Something answered.'],
+    ['Chanting Shifts', 'Round the clock. The night shift sounds different.'],
+    ['The Circle Holds', 'Whatever it was keeping out has stopped trying.'],
+  ],
+  void: [
+    ['Fence Around Nothing', 'Purely ceremonial. The goats respect the gesture.'],
+    ['Echo Feeders', 'The hay comes back louder.'],
+    ['Gravity Optional', 'Grazing on the ceiling of the universe.'],
+    ['Deeper Pasture', 'The grass goes all the way down.'],
+    ['Nothing, Fenced Twice', 'Belt and braces, around an absence.'],
+    ['Deeper Still', 'The bottom turned out to be a ledge.'],
+    ['Silent Grazing', 'No chewing sound. Somehow that is worse.'],
+    ['Absence Perfected', 'There is nothing there. It is the best nothing there has ever been.'],
+  ],
+  elder: [
+    ['Offerings of Clover', 'It accepts. It does not thank.'],
+    ['The Long Memory', 'It remembers every gate you ever left open.'],
+    ['Horns of the First Dawn', 'Older than the mountains they were measured against.'],
+    ['It Blinks', 'Once a century. You were looking.'],
+    ['Old Grudges Settled', 'It forgave the first fence. It has not forgotten it.'],
+    ['It Nods', 'Once. At you. The herd went quiet for a week.'],
+    ['The Herd Remembers', 'Every goat carries a little of the first one.'],
+    ['Beginning and End', 'It was the first goat. It intends to be the last.'],
   ],
 }
 
@@ -79,7 +153,10 @@ function buildingUpgrades(): UpgradeDef[] {
         id: `${b.id}-t${i + 1}`,
         name,
         icon: b.icon,
-        cost: Math.ceil(b.baseCost * TIER_COST_FACTORS[i]),
+        // A getter, so a retuned base cost (the balance simulator does this) carries through.
+        get cost() {
+          return Math.ceil(b.baseCost * TIER_COST_FACTORS[i])
+        },
         desc: `${b.name} production doubled.`,
         blurb,
         kind: 'building',
@@ -267,18 +344,156 @@ const GLOBAL_UPGRADES: UpgradeDef[] = [
   },
 ]
 
+/**
+ * Bought with occult points instead of goats, and kept through ascension.
+ * `requires` names the upgrade that has to be owned first, so they form a
+ * short tree rather than a flat shop.
+ */
+function occult(
+  def: Omit<UpgradeDef, 'kind' | 'unlocked'>,
+): UpgradeDef {
+  return {
+    ...def,
+    kind: 'occult',
+    unlocked: (s) => !def.requires || s.upgrades.includes(def.requires),
+  }
+}
+
+export const OCCULT_UPGRADES: UpgradeDef[] = [
+  occult({
+    id: 'occult-candle',
+    name: 'Tallow Candle',
+    icon: '🕯️',
+    cost: 1,
+    desc: 'All production +10%.',
+    blurb: 'Rendered from a goat that volunteered. Allegedly.',
+    effect: { type: 'globalMult', factor: 1.1 },
+  }),
+  occult({
+    id: 'occult-ashes',
+    name: 'Ashes of the Old Farm',
+    icon: '⚱️',
+    cost: 8,
+    requires: 'occult-candle',
+    desc: 'Start every ascension with 10,000 goats.',
+    blurb: 'Scattered over the new pasture. The grass comes up already chewed.',
+    effect: { type: 'startGoats', amount: 10_000 },
+  }),
+  occult({
+    id: 'occult-sigil',
+    name: 'Hoofprint Sigil',
+    icon: '✴️',
+    cost: 3,
+    requires: 'occult-candle',
+    desc: 'Petting is twice as effective.',
+    blurb: 'Drawn in the mud by a goat that knew exactly what it was doing.',
+    effect: { type: 'clickMult', factor: 2 },
+  }),
+  occult({
+    id: 'occult-grimoire',
+    name: 'Grimoire of Bleats',
+    icon: '📕',
+    cost: 5,
+    requires: 'occult-candle',
+    desc: 'Each unspent occult point grants an extra 1% production, on top of the usual 5%.',
+    blurb: 'Every page says the same word. The meaning changes with the reader.',
+    effect: { type: 'occultPercent', percent: 1 },
+  }),
+  occult({
+    id: 'occult-lantern',
+    name: 'Lantern in the Fog',
+    icon: '🏮',
+    cost: 8,
+    requires: 'occult-candle',
+    desc: 'Golden goats stay 50% longer.',
+    blurb: 'They are drawn to the light. So is everything else.',
+    effect: { type: 'goldenLife', factor: 1.5 },
+  }),
+  occult({
+    id: 'occult-hourglass',
+    name: 'Bottomless Hourglass',
+    icon: '⏳',
+    cost: 12,
+    requires: 'occult-ashes',
+    desc: 'Time away pays at full rate instead of half.',
+    blurb: 'The sand runs out. Then it keeps running.',
+    effect: { type: 'offlineRate', factor: 2 },
+  }),
+  occult({
+    id: 'occult-bell',
+    name: 'Black Bell',
+    icon: '🪬',
+    cost: 15,
+    requires: 'occult-lantern',
+    desc: 'Golden goats wander in 30% more often.',
+    blurb: 'Rings once, somewhere behind you.',
+    effect: { type: 'goldenFreq', factor: 1.3 },
+  }),
+  occult({
+    id: 'occult-moon',
+    name: 'Lunar Calendar',
+    icon: '🌙',
+    cost: 30,
+    requires: 'occult-hourglass',
+    desc: 'Time away counts for up to twelve hours instead of three.',
+    blurb: 'Every phase is marked as a good night for grazing.',
+    effect: { type: 'offlineCap', factor: 4 },
+  }),
+  occult({
+    id: 'occult-eye',
+    name: 'The Watching Eye',
+    icon: '👁️',
+    cost: 50,
+    requires: 'occult-grimoire',
+    desc: 'Each unspent occult point grants an extra 2% production.',
+    blurb: 'It does not blink. It does not need to.',
+    effect: { type: 'occultPercent', percent: 2 },
+  }),
+  occult({
+    id: 'occult-crown',
+    name: 'Horned Crown',
+    icon: '👑',
+    cost: 60,
+    requires: 'occult-sigil',
+    desc: 'Petting is three times as effective.',
+    blurb: 'Heavy. Pointy. Yours now.',
+    effect: { type: 'clickMult', factor: 3 },
+  }),
+  occult({
+    id: 'occult-covenant',
+    name: 'Covenant of the Herd',
+    icon: '📜',
+    cost: 90,
+    requires: 'occult-eye',
+    desc: 'All production +50%.',
+    blurb: 'Signed in hoofprints. Binding in every pasture.',
+    effect: { type: 'globalMult', factor: 1.5 },
+  }),
+  occult({
+    id: 'occult-eclipse',
+    name: 'Eclipse',
+    icon: '🌑',
+    cost: 150,
+    requires: 'occult-covenant',
+    desc: 'Each unspent occult point grants an extra 5% production.',
+    blurb: 'The sun stepped aside. The herd did not notice.',
+    effect: { type: 'occultPercent', percent: 5 },
+  }),
+]
+
 export const UPGRADES: UpgradeDef[] = [
   ...buildingUpgrades(),
   ...CLICK_UPGRADES,
   ...GOLDEN_UPGRADES,
   ...GLOBAL_UPGRADES,
+  ...OCCULT_UPGRADES,
 ]
 
 export const UPGRADE_BY_ID = new Map<string, UpgradeDef>(UPGRADES.map((u) => [u.id, u]))
 
-/** Upgrades the player can see but has not bought, cheapest first. */
+/** Goat-priced upgrades the player can see but has not bought, cheapest first. */
 export function availableUpgrades(state: GameState): UpgradeDef[] {
-  return UPGRADES.filter((u) => !state.upgrades.includes(u.id) && u.unlocked(state)).sort(
-    (a, b) => a.cost - b.cost,
-  )
+  return UPGRADES.filter(
+    (u) => u.kind !== 'occult' && !state.upgrades.includes(u.id) && u.unlocked(state),
+  ).sort((a, b) => a.cost - b.cost)
 }
