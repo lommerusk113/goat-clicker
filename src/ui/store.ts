@@ -17,7 +17,7 @@ export interface StoreHandlers {
 /** A building stays behind "???" until the herd is within sight of its price. */
 const REVEAL_FRACTION = 0.4
 
-const TIER_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
+const TIER_NUMERALS = ['I', 'II', 'III', 'IV', 'V']
 
 const KIND_LABELS: Record<UpgradeDef['kind'], string> = {
   building: 'Building upgrade',

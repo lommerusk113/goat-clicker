@@ -105,22 +105,29 @@ export function pendingOccult(state: GameState): number {
 export interface Ascension {
   /** Occult points gained. Zero means nothing happened. */
   occult: number
-  /** Building that received this ascension's gild. */
-  gilded: BuildingId | null
+  /** Buildings that received a gild this ascension, one per BALANCE.gildPerOccult points crossed. */
+  gilded: BuildingId[]
 }
 
 /**
- * Gives up the farm for occult points and a gild on one building owned this
- * run. Buildings, goats and ordinary upgrades go; achievements, occult
- * upgrades, gilds and lifetime stats stay.
+ * Gives up the farm for occult points, and a gild on a random building owned
+ * this run for every few points ever earned. Buildings, goats and ordinary
+ * upgrades go; achievements, occult upgrades, gilds and lifetime stats stay.
  */
 export function ascend(state: GameState, rng: () => number = Math.random): Ascension {
   const gain = pendingOccult(state)
-  if (gain <= 0) return { occult: 0, gilded: null }
+  if (gain <= 0) return { occult: 0, gilded: [] }
 
   const owned = BUILDING_IDS.filter((id) => state.buildings[id] > 0)
-  const gilded = owned.length > 0 ? owned[Math.floor(rng() * owned.length)] : BUILDING_IDS[0]
-  state.gilds[gilded] += 1
+  const pool = owned.length > 0 ? owned : [BUILDING_IDS[0]]
+  const before = Math.floor(state.occultEarned / BALANCE.gildPerOccult)
+  const after = Math.floor((state.occultEarned + gain) / BALANCE.gildPerOccult)
+  const gilded: BuildingId[] = []
+  for (let i = before; i < after; i++) {
+    const pick = pool[Math.floor(rng() * pool.length)]
+    state.gilds[pick] += 1
+    gilded.push(pick)
+  }
 
   state.lifetimeGoats += state.totalGoats
   state.occultEarned += gain

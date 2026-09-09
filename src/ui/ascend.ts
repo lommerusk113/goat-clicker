@@ -64,7 +64,7 @@ export function createAscend(tooltip: Tooltip, handlers: AscendHandlers): Ascend
         el('span', 'gild', `${b.icon} ${b.name} ×${s.gilds[b.id]} (+${s.gilds[b.id] * BALANCE.gildBonus * 100}%)`),
       ),
     )
-    if (held.length === 0) gildList.append(el('span', 'ascend__key', 'No gilds yet. Your first ascension hands one out.'))
+    if (held.length === 0) gildList.append(el('span', 'ascend__key', 'No gilds yet. Every fifth occult point earned hands one out.'))
 
     const chosen = gildFrom.value
     gildFrom.replaceChildren(

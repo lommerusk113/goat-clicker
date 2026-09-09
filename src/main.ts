@@ -114,14 +114,12 @@ const ui = createUi({
     if (result.occult <= 0) return
     saveGame(state, localStorage, Date.now())
     refreshPanels()
-    const gilded = result.gilded ? BUILDING_BY_ID[result.gilded] : null
+    const gilded = result.gilded.map((id) => `${BUILDING_BY_ID[id].icon} ${BUILDING_BY_ID[id].name}`)
     ui.toast({
       icon: '🕯️',
       kind: 'Ascended',
       name: `+${result.occult.toLocaleString('en-US')} occult`,
-      desc: gilded
-        ? `${gilded.icon} ${gilded.name} is gilded. Fresh pasture awaits.`
-        : 'Fresh pasture. The old herd remembers you.',
+      desc: gilded.length > 0 ? `Gilded: ${gilded.join(', ')}. Fresh pasture awaits.` : 'Fresh pasture. The old herd remembers you.',
     })
   },
 
@@ -169,13 +167,22 @@ const ui = createUi({
 
   wipeSave() {
     const sure = window.confirm(
-      'Sell the farm? Every goat, building and upgrade goes, and there is no getting them back.',
+      syncToken
+        ? 'Sell the farm? Every goat, building, upgrade and occult point goes, here and on every device sharing this sync code. Turn off cloud sync first to reset only this browser.'
+        : 'Sell the farm? Every goat, building and upgrade goes, and there is no getting them back.',
     )
     if (!sure) return
     clearGame(localStorage)
     state = createInitialState(Date.now())
+    // The fresh save is the newest, so pushing it now sells the cloud herd too
+    // and every other device adopts the empty pasture on its next save.
+    saveGame(state, localStorage, Date.now())
     refreshPanels()
-    ui.status('Farm sold. Fresh pasture, one goat at a time.')
+    if (syncToken) {
+      void pushCloud().then(() => ui.status('Farm sold, here and in the cloud. Fresh pasture, one goat at a time.'))
+    } else {
+      ui.status('Farm sold. Fresh pasture, one goat at a time.')
+    }
   },
 
   enableSync() {

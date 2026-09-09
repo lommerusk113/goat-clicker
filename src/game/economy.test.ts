@@ -66,16 +66,16 @@ describe('milestoneMult', () => {
 })
 
 describe('gilds', () => {
-  test('add half a building\'s output per gild', () => {
+  test('add a building\'s full output per gild', () => {
     const s = stateWith({ buildings: { ...createInitialState(0).buildings, meadow: 10 } })
     s.gilds = { ...s.gilds, meadow: 2 }
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 2)
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 3)
   })
 
   test('boost the click bonus of a gilded scratching post', () => {
     const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 10 } })
     s.gilds = { ...s.gilds, post: 1 }
-    expect(goatsPerClick(s)).toBeCloseTo(1 + 10 * 0.2 * 1.5)
+    expect(goatsPerClick(s)).toBeCloseTo(1 + 10 * 0.02 * 2)
   })
 })
 
@@ -104,13 +104,13 @@ describe('baseGoatsPerSecond', () => {
     expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 0.3 * 2 + 2 * 1)
   })
 
-  test('unspent occult points add a percentage each', () => {
+  test('unspent occult points add ten percent each; spent ones do not', () => {
     const s = stateWith({
       buildings: { ...createInitialState(0).buildings, meadow: 10 },
       occult: 25,
       occultEarned: 100,
     })
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 2.25)
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 3.5)
   })
 
   test('occult upgrades raise the bonus per point', () => {
@@ -119,7 +119,7 @@ describe('baseGoatsPerSecond', () => {
       occult: 25,
       upgrades: ['occult-grimoire'],
     })
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 2.5)
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 4.25)
   })
 
   test('per-achievement upgrades scale all production', () => {
@@ -192,18 +192,24 @@ describe('goatsPerClick', () => {
     expect(goatsPerClick(flat)).toBe(2)
 
     const both = stateWith({ upgrades: ['click-handshake', 'click-scritch'] })
-    expect(goatsPerClick(both)).toBe(4)
+    expect(goatsPerClick(both)).toBe(2.5)
   })
 
   test('scratching posts add to every pet, doubled by their own tiers', () => {
     const posts = stateWith({ buildings: { ...createInitialState(0).buildings, post: 10 } })
-    expect(goatsPerClick(posts)).toBeCloseTo(1 + 10 * 0.2)
+    expect(goatsPerClick(posts)).toBeCloseTo(1 + 10 * 0.02)
 
     const tiered = stateWith({
       buildings: { ...createInitialState(0).buildings, post: 10 },
       upgrades: ['post-t1'],
     })
-    expect(goatsPerClick(tiered)).toBeCloseTo(1 + 10 * 0.2 * 2)
+    expect(goatsPerClick(tiered)).toBeCloseTo(1 + 10 * 0.02 * 2)
+  })
+
+  test('milestones lift a post\'s production but not its click bonus', () => {
+    const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 200 } })
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(200 * 0.3 * 4)
+    expect(goatsPerClick(s)).toBeCloseTo(1 + 200 * 0.02)
   })
 
   test('adds a share of production, based on unbuffed output', () => {
@@ -211,7 +217,7 @@ describe('goatsPerClick', () => {
       buildings: { ...createInitialState(0).buildings, meadow: 100 },
       upgrades: ['click-whisperer'],
     })
-    expect(goatsPerClick(s)).toBeCloseTo(1 + 100 * 0.01)
+    expect(goatsPerClick(s)).toBeCloseTo(1 + 100 * 0.005)
   })
 
   test('applies click buffs', () => {

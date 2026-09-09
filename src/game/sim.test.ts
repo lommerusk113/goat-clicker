@@ -37,6 +37,14 @@ interface Scenario {
   hours?: number
   /** Model golden goats. The player catches every one while active, a quarter of them while idling. */
   goldens?: boolean
+  /** What purchases are judged on: goats per pet only, goats per second only, or both (default). */
+  strategy?: 'click' | 'gps' | 'hybrid'
+  /** Override the Scratching Post's goats-per-pet bonus per unit. */
+  postClick?: number
+  /** How eagerly to ascend: whenever a point is on offer, the usual rule, or only when points would double. */
+  ascend?: 'often' | 'normal' | 'rare'
+  /** Occult spending: greedy on immediate income, 'smart' (production only, no gild moves), or never. */
+  spend?: 'greedy' | 'smart' | 'never'
 }
 
 /** Pets per second while a Petting Frenzy is running and the player is at the screen. */
@@ -70,6 +78,7 @@ function run(sc: Scenario) {
   const hoursTotal = sc.hours ?? 400
   let pets = sc.petsPerSecond ?? 3
   const income = (s: GameState) => baseGoatsPerSecond(s) + goatsPerClick(s) * pets
+  /** Production lost by spending `points` occult, in goats per second. */
   const pointCost = (s: GameState, points: number) => {
     const m = multipliers(s)
     const now = 1 + (s.occult * m.occultPercent) / 100
@@ -77,9 +86,15 @@ function run(sc: Scenario) {
     return income(s) * (1 - after / now)
   }
 
+  const valued = (s: GameState): number => {
+    if (sc.strategy === 'click') return goatsPerClick(s) * pets
+    if (sc.strategy === 'gps') return baseGoatsPerSecond(s)
+    return income(s)
+  }
+
   const bestPurchase = (s: GameState): Option | undefined => {
-    const gps = income(s)
-    const reach = s.goats + gps * PATIENCE_SECONDS
+    const gps = valued(s)
+    const reach = s.goats + income(s) * PATIENCE_SECONDS
     let best: Option | undefined
     let fallback: Option | undefined
     const consider = (cost: number, gain: number, act: (x: GameState) => void) => {
@@ -94,18 +109,20 @@ function run(sc: Scenario) {
       for (const count of new Set([1, Math.max(1, nextMilestone(n) - n)])) {
         const trial = structuredClone(s)
         trial.buildings[b.id] += count
-        consider(bulkCost(b, n, count), income(trial) - gps, (x) => buyBuilding(x, b.id, count))
+        consider(bulkCost(b, n, count), valued(trial) - gps, (x) => buyBuilding(x, b.id, count))
       }
     }
     for (const u of availableUpgrades(s)) {
       const trial = structuredClone(s)
       trial.upgrades.push(u.id)
-      consider(u.cost, income(trial) - gps, (x) => buyUpgrade(x, u.id))
+      consider(u.cost, valued(trial) - gps, (x) => buyUpgrade(x, u.id))
     }
     return best ?? fallback
   }
 
   const spendOnOccult = (s: GameState) => {
+    // The smart spender judges on steady production, so a burst of petting cannot sell it a click upgrade.
+    const worth = sc.spend === 'smart' ? baseGoatsPerSecond : income
     for (;;) {
       let pick: { id: string; gain: number } | undefined
       for (const u of OCCULT_UPGRADES) {
@@ -113,7 +130,7 @@ function run(sc: Scenario) {
         const trial = structuredClone(s)
         trial.upgrades.push(u.id)
         trial.occult -= u.cost
-        const gain = income(trial) - income(s)
+        const gain = worth(trial) - worth(s)
         if (gain > 0 && (!pick || gain > pick.gain)) pick = { id: u.id, gain }
       }
       if (!pick) return
@@ -147,8 +164,9 @@ function run(sc: Scenario) {
 
   // --- apply the scenario -----------------------------------------------------
   const savedBalance = { ...BALANCE }
-  const savedBuildings = BUILDINGS.map((b) => ({ baseCost: b.baseCost, baseCps: b.baseCps }))
+  const savedBuildings = BUILDINGS.map((b) => ({ baseCost: b.baseCost, baseCps: b.baseCps, baseClick: b.baseClick }))
   Object.assign(BALANCE, sc.balance ?? {})
+  if (sc.postClick !== undefined) BUILDINGS[0].baseClick = sc.postClick
   BUILDINGS.forEach((b, k) => {
     if (sc.costRatio && k >= 1) b.baseCost = Math.round(100 * sc.costRatio ** (k - 1))
     if (sc.falloff && k >= 1) b.baseCps = (b.baseCost * 0.01) / sc.falloff ** (k - 1)
@@ -190,16 +208,24 @@ function run(sc: Scenario) {
     while (t < hoursTotal * 3600) {
       if (sc.petsPerSecond === undefined) pets = realisticPets(t - runStart)
       const pending = pendingOccult(s)
-      if (pending >= Math.max(5, 0.2 * s.occultEarned) && t - runStart >= 3600) {
+      const ready =
+        sc.ascend === 'often'
+          ? pending >= 1
+          : sc.ascend === 'rare'
+            ? pending >= Math.max(5, s.occultEarned)
+            : pending >= Math.max(5, 0.2 * s.occultEarned)
+      if (ready && t - runStart >= 3600) {
         const result = ascend(s, rng)
         ascensions.push({ t, gain: result.occult })
         runStart = t
         nextGolden = t + BALANCE.goldenFirstDelay
-        spendOnOccult(s)
+        if (sc.spend !== 'never') spendOnOccult(s)
         continue
       }
-      manageGilds(s, rng)
-      spendOnOccult(s)
+      if (sc.spend !== 'never') {
+        if (sc.spend !== 'smart') manageGilds(s, rng)
+        spendOnOccult(s)
+      }
 
       const gps = income(s)
       const best = bestPurchase(s)
@@ -232,7 +258,7 @@ function run(sc: Scenario) {
         if (before < m * 3600 && t >= m * 3600) {
           const own = BUILDINGS.map((b) => s.buildings[b.id])
           snapshots.push(
-            `  ${String(m).padStart(3)}h gps=${baseGoatsPerSecond(s).toExponential(1)} asc=${s.ascensions} pts=${s.occult}/${s.occultEarned} ach=${s.achievements.length} upg=${s.upgrades.length} ` +
+            `  ${String(m).padStart(3)}h gps=${baseGoatsPerSecond(s).toExponential(1)} pets=${(goatsPerClick(s) * pets).toExponential(1)}/s total=${(s.lifetimeGoats + s.totalGoats).toExponential(1)} asc=${s.ascensions} pts=${s.occult}/${s.occultEarned} ach=${s.achievements.length} upg=${s.upgrades.length} ` +
               `top=${BUILDINGS[own.lastIndexOf(Math.max(...own.filter((n) => n > 0)))]?.id ?? '-'} ` +
               `frontier=${[...own.entries()].filter(([, n]) => n > 0).pop()?.[0] ?? 0} ` +
               `>=200:${own.filter((n) => n >= 200).length} gilds=${Object.values(s.gilds).reduce((a, b) => a + b, 0)}/max${Math.max(...Object.values(s.gilds))}`,
@@ -253,8 +279,10 @@ function run(sc: Scenario) {
   const goldenLine = sc.goldens
     ? `  golden goats caught: ${goldenLog.caught} (${goldenLog.clickFrenzies} petting frenzies); goats from them <1h/<4h/<24h/rest: ${goldenLog.goatsByHour.map((g) => g.toExponential(1)).join('/')}`
     : ''
+  const finalLine = `  END ${(t / 3600).toFixed(0)}h lifetime=${(s.lifetimeGoats + s.totalGoats).toExponential(1)} asc=${s.ascensions} pts=${s.occult}/${s.occultEarned} gilds=${Object.values(s.gilds).reduce((a, b) => a + b, 0)}/max${Math.max(...Object.values(s.gilds))} elder@${firstBought.elder === undefined ? '-' : (firstBought.elder / 3600).toFixed(0) + 'h'}`
   return [
     `=== ${sc.name}${runaway ? '  *** RUNAWAY ***' : ''}`,
+    finalLine,
     ...snapshots,
     ...(goldenLine ? [goldenLine] : []),
     `  first bought: ${frontier}`,
@@ -265,7 +293,9 @@ function run(sc: Scenario) {
 }
 
 const SCENARIOS: Scenario[] = [
-  { name: 'default tuning, realistic player, golden goats on', goldens: true },
+  { name: 'greedy spender: buys anything that lifts income now, rerolls gilds', goldens: true },
+  { name: 'smart spender: production upgrades only, no gild moves', goldens: true, spend: 'smart' },
+  { name: 'hoarder: never spends a point', goldens: true, spend: 'never' },
 ]
 
 test.skipIf(!import.meta.env.VITE_SIM)('balance sweep', () => {

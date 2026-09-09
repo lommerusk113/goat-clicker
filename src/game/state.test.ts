@@ -163,26 +163,26 @@ describe('buyUpgrade', () => {
 })
 
 describe('occultLevel', () => {
-  test('gives fifteen points per tenfold of lifetime goats', () => {
+  test('gives five points per tenfold of lifetime goats past ten billion', () => {
     expect(occultLevel(0)).toBe(0)
-    expect(occultLevel(1e8)).toBe(4)
-    expect(occultLevel(1e9)).toBe(15)
-    expect(occultLevel(1e10)).toBe(30)
-    expect(occultLevel(1e12)).toBe(60)
-    expect(occultLevel(1e20)).toBe(180)
+    expect(occultLevel(1e10)).toBe(1)
+    expect(occultLevel(1e11)).toBe(5)
+    expect(occultLevel(1e12)).toBe(10)
+    expect(occultLevel(1e15)).toBe(25)
+    expect(occultLevel(1e20)).toBe(50)
   })
 
   test('inverts back to the goats needed', () => {
-    expect(occultLevel(goatsForOccultLevel(40))).toBe(40)
-    expect(occultLevel(goatsForOccultLevel(40) - 1)).toBe(39)
+    expect(occultLevel(goatsForOccultLevel(12))).toBe(12)
+    expect(occultLevel(goatsForOccultLevel(12) * 0.999)).toBe(11)
   })
 })
 
 describe('ascend', () => {
   function veteran() {
     const s = createInitialState(0)
-    s.goats = 5e10
-    s.totalGoats = 1e11
+    s.goats = 5e11
+    s.totalGoats = 1e12
     s.clicks = 500
     s.buildings.meadow = 40
     s.upgrades = ['meadow-t1', 'occult-candle']
@@ -197,19 +197,19 @@ describe('ascend', () => {
     s.totalGoats = 500
     s.buildings.meadow = 3
     expect(pendingOccult(s)).toBe(0)
-    expect(ascend(s)).toEqual({ occult: 0, gilded: null })
+    expect(ascend(s)).toEqual({ occult: 0, gilded: [] })
     expect(s.buildings.meadow).toBe(3)
     expect(s.ascensions).toBe(0)
   })
 
   test('banks the pending points and resets the farm', () => {
     const s = veteran()
-    expect(pendingOccult(s)).toBe(45)
-    expect(ascend(s).occult).toBe(45)
-    expect(s.occult).toBe(45)
-    expect(s.occultEarned).toBe(45)
+    expect(pendingOccult(s)).toBe(10)
+    expect(ascend(s).occult).toBe(10)
+    expect(s.occult).toBe(10)
+    expect(s.occultEarned).toBe(10)
     expect(s.ascensions).toBe(1)
-    expect(s.lifetimeGoats).toBe(1e11)
+    expect(s.lifetimeGoats).toBe(1e12)
     expect(s.goats).toBe(0)
     expect(s.totalGoats).toBe(0)
     expect(s.buildings.meadow).toBe(0)
@@ -227,11 +227,11 @@ describe('ascend', () => {
   test('only pays for goats herded since the last ascension', () => {
     const s = veteran()
     ascend(s)
-    s.totalGoats = 1e11
-    // 2e11 lifetime is level 49, and 45 of those are already banked.
-    expect(pendingOccult(s)).toBe(4)
-    expect(ascend(s).occult).toBe(4)
-    expect(s.occultEarned).toBe(49)
+    s.totalGoats = 1e12
+    // 2e12 lifetime is level 11, and 10 of those are already banked.
+    expect(pendingOccult(s)).toBe(1)
+    expect(ascend(s).occult).toBe(1)
+    expect(s.occultEarned).toBe(11)
   })
 
   test('starts the new herd with whatever the occult upgrades grant', () => {
@@ -241,16 +241,17 @@ describe('ascend', () => {
     expect(s.goats).toBe(10_000)
   })
 
-  test('gilds one of the buildings owned this run, and gilds survive', () => {
+  test('hands out a gild per five points earned, on buildings owned this run', () => {
     const s = veteran()
     s.buildings.barn = 1
-    // Owned: meadow, barn. A roll of 0.9 lands on the last of them.
-    expect(ascend(s, () => 0.9)).toEqual({ occult: 45, gilded: 'barn' })
-    expect(s.gilds.barn).toBe(1)
-    s.totalGoats = 1e11
+    // Ten points: two gilds. Owned: meadow, barn. A roll of 0.9 lands on the last of them.
+    expect(ascend(s, () => 0.9)).toEqual({ occult: 10, gilded: ['barn', 'barn'] })
+    expect(s.gilds.barn).toBe(2)
+    // One more point (11 earned) crosses no multiple of five: no gild.
+    s.totalGoats = 1e12
     s.buildings.meadow = 1
-    expect(ascend(s, () => 0).gilded).toBe('meadow')
-    expect(s.gilds).toMatchObject({ barn: 1, meadow: 1 })
+    expect(ascend(s, () => 0)).toEqual({ occult: 1, gilded: [] })
+    expect(s.gilds).toMatchObject({ barn: 2, meadow: 0 })
   })
 })
 

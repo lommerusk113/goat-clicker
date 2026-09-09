@@ -16,7 +16,10 @@ export const BUILDINGS: BuildingDef[] = [
     icon: '🪵',
     baseCost: 15,
     baseCps: 0.3,
-    baseClick: 0.2,
+    // Per pet, per post. Small on purpose: at five pets a second this is a
+    // third of a post's own output, so a heavy clicker gains a modest boost,
+    // not multiples. Simulated at 0.2 a click-only player finished 6,000x ahead.
+    baseClick: 0.02,
     blurb: 'Goats queue up to be scratched. It counts as petting.',
   },
   {

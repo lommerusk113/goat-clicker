@@ -40,7 +40,14 @@ export function totalBuildings(state: GameState): number {
 }
 
 export interface Multipliers {
+  /** Per-building output factor: tiers, milestones and gilds together. */
   building: Record<BuildingId, number>
+  /**
+   * Per-building factor from tier upgrades and gilds only. Click bonuses use
+   * this, so milestones cannot turn a heavy clicker into a runaway; simulated
+   * with milestones included, a click-only player finished 6,000x ahead.
+   */
+  buildingClick: Record<BuildingId, number>
   global: number
   clickFlat: number
   clickMult: number
@@ -64,6 +71,7 @@ export function multipliers(state: GameState): Multipliers {
   >
   const m: Multipliers = {
     building,
+    buildingClick: { ...building },
     global: 1,
     clickFlat: 0,
     clickMult: 1,
@@ -124,9 +132,11 @@ export function multipliers(state: GameState): Multipliers {
     }
   }
   for (const id of BUILDING_IDS) {
-    m.building[id] *= milestoneMult(state.buildings[id]) * (1 + BALANCE.gildBonus * state.gilds[id])
+    const gilded = 1 + BALANCE.gildBonus * state.gilds[id]
+    m.buildingClick[id] = m.building[id] * gilded
+    m.building[id] *= milestoneMult(state.buildings[id]) * gilded
   }
-  // Unspent points only: every reroll or occult upgrade is paid for in production.
+  // Unspent points only: spend too many and the herd slows down.
   m.global *= 1 + (state.occult * m.occultPercent) / 100
   return m
 }
@@ -152,7 +162,7 @@ export function goatsPerSecond(state: GameState, m = multipliers(state)): number
 export function clickFromBuildings(state: GameState, m = multipliers(state)): number {
   let flat = 0
   for (const b of BUILDINGS) {
-    if (b.baseClick) flat += state.buildings[b.id] * b.baseClick * m.building[b.id]
+    if (b.baseClick) flat += state.buildings[b.id] * b.baseClick * m.buildingClick[b.id]
   }
   return flat
 }

@@ -19,17 +19,23 @@ export const BALANCE = {
   milestoneBig: 1000,
   milestoneBigMult: 10,
   /** Extra output per gild, as a fraction. Gilds add up rather than compound. */
-  gildBonus: 0.5,
+  gildBonus: 1,
   /** Lifetime goats at which the occult scale starts counting. */
-  occultUnit: 1e8,
-  /** Occult points per tenfold increase in lifetime goats. */
-  occultPerDecade: 15,
-  /** Production bonus each unspent occult point grants, in percent. */
-  occultBasePercent: 5,
+  occultUnit: 1e10,
+  /** Occult points per tenfold increase in lifetime goats. Scarce: each one is worth a lot. */
+  occultPerDecade: 5,
+  /**
+   * Production bonus each unspent occult point grants, in percent. Spending a
+   * point on an occult upgrade or a gild move gives this up, so every purchase
+   * has to beat it.
+   */
+  occultBasePercent: 10,
   /** Occult points to throw one gild onto a random other building. */
   gildRerollCost: 1,
   /** Occult points to place one gild exactly where you want it. */
   gildMoveCost: 20,
+  /** A gild is handed out for every this many occult points ever earned, so ascending often earns no extra gilds. */
+  gildPerOccult: 5,
   /** Seconds before the first golden goat of a run. */
   goldenFirstDelay: 300,
   /**
