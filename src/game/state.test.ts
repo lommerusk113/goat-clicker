@@ -5,6 +5,7 @@ import {
   addBuff,
   ascend,
   buyBuilding,
+  buyRelic,
   moveGild,
   rerollGild,
   buyUpgrade,
@@ -143,22 +144,88 @@ describe('buyUpgrade', () => {
     expect(buyUpgrade(s, 'not-a-real-upgrade')).toBe(false)
   })
 
-  test('occult upgrades cost occult points, not goats', () => {
+})
+
+describe('buyRelic', () => {
+  test('levels a relic with occult points, not goats', () => {
     const s = createInitialState(0)
     s.goats = 1e12
-    expect(buyUpgrade(s, 'occult-candle')).toBe(false)
+    expect(buyRelic(s, 'candle')).toBe(0)
     s.occult = 1
-    expect(buyUpgrade(s, 'occult-candle')).toBe(true)
+    expect(buyRelic(s, 'candle')).toBe(1)
+    expect(s.occultLevels.candle).toBe(1)
     expect(s.occult).toBe(0)
     expect(s.goats).toBe(1e12)
   })
 
-  test('occult upgrades wait for the one they build on', () => {
+  test('charges a rising price per level', () => {
     const s = createInitialState(0)
-    s.occult = 100
-    expect(buyUpgrade(s, 'occult-sigil')).toBe(false)
-    buyUpgrade(s, 'occult-candle')
-    expect(buyUpgrade(s, 'occult-sigil')).toBe(true)
+    s.occult = 6
+    // Levels 1, 2 and 3 of a costStep-1 relic come to 1 + 2 + 3.
+    expect(buyRelic(s, 'candle', 3)).toBe(3)
+    expect(s.occult).toBe(0)
+    expect(s.occultLevels.candle).toBe(3)
+  })
+
+  test('a dearer relic charges its step every level', () => {
+    const s = createInitialState(0)
+    s.occult = 9
+    // The Crown steps by three: 3 + 6 for two levels.
+    expect(buyRelic(s, 'crown', 2)).toBe(2)
+    expect(s.occult).toBe(0)
+  })
+
+  test('buys nothing when the whole order is out of reach', () => {
+    const s = createInitialState(0)
+    s.occult = 5
+    expect(buyRelic(s, 'candle', 3)).toBe(0)
+    expect(s.occult).toBe(5)
+    expect(s.occultLevels.candle).toBe(0)
+  })
+
+  test('max takes as many levels as the points stretch to', () => {
+    const s = createInitialState(0)
+    s.occult = 10
+    // 1+2+3+4 = 10 exactly; a fifth level would cost 5 more.
+    expect(buyRelic(s, 'candle', 'max')).toBe(4)
+    expect(s.occult).toBe(0)
+  })
+
+  test('max on an empty purse buys nothing', () => {
+    const s = createInitialState(0)
+    expect(buyRelic(s, 'candle', 'max')).toBe(0)
+  })
+})
+
+describe('the idle clock', () => {
+  test('starts at zero on a fresh farm', () => {
+    expect(createInitialState(0).sincePet).toBe(0)
+  })
+
+  test('runs on while the herd produces', () => {
+    const s = createInitialState(0)
+    produce(s, 30)
+    produce(s, 45)
+    expect(s.sincePet).toBe(75)
+  })
+
+  test('is reset by a pet', () => {
+    const s = createInitialState(0)
+    produce(s, 600)
+    petGoat(s)
+    expect(s.sincePet).toBe(0)
+  })
+
+  test('a pet never collects the idle bonus it just cancelled', () => {
+    const idle = createInitialState(0)
+    idle.buildings.meadow = 10
+    idle.occultLevels.hourglass = 4
+    idle.upgrades = ['click-whisperer']
+    produce(idle, 600)
+
+    const active = { ...idle, sincePet: 0 }
+    // The click share reads production, so the two must price a pet the same.
+    expect(petGoat(idle)).toBeCloseTo(petGoat(active))
   })
 })
 
@@ -185,7 +252,8 @@ describe('ascend', () => {
     s.totalGoats = 1e12
     s.clicks = 500
     s.buildings.meadow = 40
-    s.upgrades = ['meadow-t1', 'occult-candle']
+    s.upgrades = ['meadow-t1']
+    s.occultLevels.candle = 3
     s.achievements = ['first-goat']
     s.buffs = [buff(10)]
     return s
@@ -216,10 +284,11 @@ describe('ascend', () => {
     expect(s.buffs).toEqual([])
   })
 
-  test('keeps achievements, lifetime stats and occult upgrades', () => {
+  test('keeps achievements, lifetime stats and relics but no goat upgrades', () => {
     const s = veteran()
     ascend(s)
-    expect(s.upgrades).toEqual(['occult-candle'])
+    expect(s.upgrades).toEqual([])
+    expect(s.occultLevels.candle).toBe(3)
     expect(s.achievements).toEqual(['first-goat'])
     expect(s.clicks).toBe(500)
   })
@@ -234,11 +303,11 @@ describe('ascend', () => {
     expect(s.occultEarned).toBe(11)
   })
 
-  test('starts the new herd with whatever the occult upgrades grant', () => {
+  test('starts the new herd with whatever the Ashes grant', () => {
     const s = veteran()
-    s.upgrades.push('occult-ashes')
+    s.occultLevels.ashes = 2
     ascend(s)
-    expect(s.goats).toBe(10_000)
+    expect(s.goats).toBe(100_000)
   })
 
   test('hands out a gild per five points earned, on buildings owned this run', () => {

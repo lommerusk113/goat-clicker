@@ -26,7 +26,7 @@ export const BALANCE = {
   occultPerDecade: 5,
   /**
    * Production bonus each unspent occult point grants, in percent. Spending a
-   * point on an occult upgrade or a gild move gives this up, so every purchase
+   * point on a relic level or a gild move gives this up, so every purchase
    * has to beat it.
    */
   occultBasePercent: 10,
@@ -36,6 +36,12 @@ export const BALANCE = {
   gildMoveCost: 20,
   /** A gild is handed out for every this many occult points ever earned, so ascending often earns no extra gilds. */
   gildPerOccult: 5,
+  /**
+   * Seconds without a pet before the herd counts as idle. Two minutes, as in
+   * Clicker Heroes: long enough that a clicker never drifts into it by accident,
+   * short enough that putting the tab down pays before you have forgotten it.
+   */
+  idleSeconds: 120,
   /** Seconds before the first golden goat of a run. */
   goldenFirstDelay: 300,
   /**

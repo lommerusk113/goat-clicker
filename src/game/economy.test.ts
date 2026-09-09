@@ -7,10 +7,13 @@ import {
   costOf,
   goatsPerClick,
   goatsPerSecond,
+  idleIn,
+  isIdle,
   milestoneMult,
   nextMilestone,
   totalBuildings,
 } from './economy'
+import { BALANCE } from './balance'
 import { createInitialState } from './state'
 import type { Buff, GameState } from './types'
 
@@ -113,13 +116,15 @@ describe('baseGoatsPerSecond', () => {
     expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 3.5)
   })
 
-  test('occult upgrades raise the bonus per point', () => {
+  test('the Grimoire raises the bonus per point', () => {
+    const base = createInitialState(0)
     const s = stateWith({
-      buildings: { ...createInitialState(0).buildings, meadow: 10 },
+      buildings: { ...base.buildings, meadow: 10 },
       occult: 25,
-      upgrades: ['occult-grimoire'],
+      // Two levels take each point from 10% to 14%, so 25 points pay ×4.5.
+      occultLevels: { ...base.occultLevels, grimoire: 2 },
     })
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 4.25)
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 4.5)
   })
 
   test('per-achievement upgrades scale all production', () => {
@@ -242,5 +247,48 @@ describe('computeStats', () => {
     expect(summed).toBeCloseTo(stats.gps)
     expect(stats.buildingsOwned).toBe(12)
     expect(stats.gpsBase).toBeCloseTo(stats.gps / 7)
+  })
+})
+
+describe('the idle bonus', () => {
+  function idler(level: number, sincePet: number) {
+    const base = createInitialState(0)
+    return stateWith({
+      buildings: { ...base.buildings, meadow: 10 },
+      occultLevels: { ...base.occultLevels, hourglass: level },
+      sincePet,
+    })
+  }
+
+  test('pays nothing until the herd has been left alone long enough', () => {
+    expect(isIdle(idler(2, BALANCE.idleSeconds - 1))).toBe(false)
+    expect(baseGoatsPerSecond(idler(2, BALANCE.idleSeconds - 1))).toBeCloseTo(10)
+  })
+
+  test('pays the Hourglass once the clock runs out', () => {
+    expect(isIdle(idler(2, BALANCE.idleSeconds))).toBe(true)
+    expect(baseGoatsPerSecond(idler(2, BALANCE.idleSeconds))).toBeCloseTo(10 * 1.5 ** 2)
+  })
+
+  test('counts down the seconds left before it starts', () => {
+    expect(idleIn(idler(2, 0))).toBe(BALANCE.idleSeconds)
+    expect(idleIn(idler(2, 90))).toBe(BALANCE.idleSeconds - 90)
+    expect(idleIn(idler(2, 1_000))).toBe(0)
+  })
+
+  test('does nothing at all without the Hourglass', () => {
+    const base = createInitialState(0)
+    const s = stateWith({
+      buildings: { ...base.buildings, meadow: 10 },
+      sincePet: 1_000,
+    })
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10)
+  })
+
+  test('shows up in the stats the interface draws', () => {
+    const stats = computeStats(idler(2, BALANCE.idleSeconds))
+    expect(stats.idleMult).toBeCloseTo(1.5 ** 2)
+    expect(stats.idleIn).toBe(0)
+    expect(stats.gps).toBeCloseTo(10 * 1.5 ** 2)
   })
 })

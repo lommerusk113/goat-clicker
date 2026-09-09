@@ -1,8 +1,26 @@
 import { ACHIEVEMENTS } from './achievements'
+import { BALANCE } from './balance'
 import { BUILDING_IDS } from './buildings'
+import { RELICS, emptyRelics } from './relics'
 import { UPGRADE_BY_ID } from './upgrades'
-import { SAVE_VERSION, createInitialState } from './state'
-import type { Buff, BuffKind, GameState } from './types'
+import { SAVE_VERSION, createInitialState, occultLevel } from './state'
+import type { Buff, BuffKind, GameState, RelicId } from './types'
+
+/** The save this migration code understands without help. Older ones get patched up. */
+const RELIC_VERSION = 3
+
+/**
+ * Achievements renamed when the occult scale was retuned. They are not all
+ * re-earnable — the upgrade pool shrank — and an earned badge should stay
+ * earned, so the old ids are carried across rather than dropped.
+ */
+const RENAMED_ACHIEVEMENTS: Record<string, string> = {
+  'upgrades-100': 'upgrades-75',
+  'upgrades-130': 'upgrades-90',
+}
+
+/** Highest tier each building still has, so a save from the eight-tier days can be squared up. */
+const MAX_TIER = 5
 
 export const SAVE_KEY = 'goatclicker.save'
 
@@ -65,6 +83,53 @@ function buffs(value: unknown): Buff[] {
 }
 
 /**
+ * Squares up a list of upgrade ids with the upgrades that currently exist.
+ *
+ * Building tiers were cut from eight to five, which silently deleted ids such
+ * as `post-t6`. Dropping them would take back tiers the player paid for, so
+ * instead each building keeps as many tiers as it had, capped at what the
+ * ladder now holds: someone who had climbed seven rungs keeps all five.
+ */
+function repairUpgrades(saved: string[]): string[] {
+  const tiersPer = new Map<string, number>()
+  const kept: string[] = []
+
+  for (const id of saved) {
+    const tier = /^(.+)-t(\d+)$/.exec(id)
+    if (tier) {
+      tiersPer.set(tier[1], (tiersPer.get(tier[1]) ?? 0) + 1)
+    } else if (UPGRADE_BY_ID.has(id)) {
+      kept.push(id)
+    }
+  }
+
+  for (const [building, owned] of tiersPer) {
+    for (let tier = 1; tier <= Math.min(owned, MAX_TIER); tier++) {
+      const id = `${building}-t${tier}`
+      if (UPGRADE_BY_ID.has(id)) kept.push(id)
+    }
+  }
+  return kept
+}
+
+/** Carries renamed achievements across and drops the ones that truly went. */
+function repairAchievements(saved: string[]): string[] {
+  const out = new Set<string>()
+  for (const id of saved) {
+    const current = RENAMED_ACHIEVEMENTS[id] ?? id
+    if (ACHIEVEMENT_IDS.has(current)) out.add(current)
+  }
+  return [...out]
+}
+
+function relicLevels(value: unknown): Record<RelicId, number> {
+  const saved = (value ?? {}) as Record<string, unknown>
+  const levels = emptyRelics()
+  for (const r of RELICS) levels[r.id] = Math.max(0, Math.floor(num(saved[r.id], 0)))
+  return levels
+}
+
+/**
  * Rebuilds a full state from whatever a save happens to contain, so an older
  * or hand-edited save loads instead of breaking the game.
  */
@@ -81,24 +146,47 @@ function migrate(raw: Record<string, unknown>): GameState {
   const gilds = base.gilds
   for (const id of BUILDING_IDS) gilds[id] = Math.max(0, Math.floor(num(savedGilds[id], 0)))
 
+  const version = num(raw.version, 1)
+  const totalGoats = Math.max(0, num(raw.totalGoats, num(raw.goats, 0)))
+  const lifetimeGoats = Math.max(0, num(raw.lifetimeGoats, 0))
+  const occultEarned = Math.max(0, Math.floor(num(raw.occultEarned, 0)))
+
+  // Saves from before the relics spent their points on occult upgrades that no
+  // longer exist. Hand every point ever earned back rather than map fourteen
+  // one-shot buys onto seven ladders: the player re-plans, nobody is short.
+  const respec = version < RELIC_VERSION
+  const occult = respec ? occultEarned : Math.max(0, Math.floor(num(raw.occult, 0)))
+
+  // Points earned on the old fifteen-per-decade curve are worth far fewer on
+  // this one, which would leave a grandfathered save owing back the difference
+  // before its next point. The credit writes that difference off, once.
+  const occultCredit = respec
+    ? Math.max(0, occultEarned - occultLevel(lifetimeGoats + totalGoats))
+    : Math.max(0, Math.floor(num(raw.occultCredit, 0)))
+
   return {
     version: SAVE_VERSION,
     goats: Math.max(0, num(raw.goats, 0)),
-    totalGoats: Math.max(0, num(raw.totalGoats, num(raw.goats, 0))),
+    totalGoats,
     goatsFromClicks: Math.max(0, num(raw.goatsFromClicks, 0)),
     clicks: Math.max(0, num(raw.clicks, 0)),
     goldenClicks: Math.max(0, num(raw.goldenClicks, 0)),
     ascensions: Math.max(0, Math.floor(num(raw.ascensions, 0))),
-    occult: Math.max(0, Math.floor(num(raw.occult, 0))),
-    occultEarned: Math.max(0, Math.floor(num(raw.occultEarned, 0))),
-    lifetimeGoats: Math.max(0, num(raw.lifetimeGoats, 0)),
+    occult,
+    occultEarned,
+    lifetimeGoats,
+    occultLevels: relicLevels(raw.occultLevels),
+    occultCredit,
     buildings,
     gilds,
-    upgrades: ids(raw.upgrades, (id) => UPGRADE_BY_ID.has(id)),
-    achievements: ids(raw.achievements, (id) => ACHIEVEMENT_IDS.has(id)),
+    upgrades: repairUpgrades(ids(raw.upgrades, () => true)),
+    achievements: repairAchievements(ids(raw.achievements, () => true)),
     buffs: buffs(raw.buffs),
     goldenTimer: num(raw.goldenTimer, base.goldenTimer),
     playTime: Math.max(0, num(raw.playTime, 0)),
+    // Whoever is loading a save has not petted anything for a while, so the
+    // herd is already idle — which is what makes time away pay the idle rate.
+    sincePet: BALANCE.idleSeconds,
     startedAt: num(raw.startedAt, 0),
     lastSaved: num(raw.lastSaved, num(raw.startedAt, 0)),
   }
@@ -131,7 +219,7 @@ export function clearGame(storage: Storage): void {
   storage.removeItem(SAVE_KEY)
 }
 
-/** What the herd produced while the tab was closed. Occult upgrades raise the rate and cap. */
+/** What the herd produced while the tab was closed, at the idle rate it was already earning. */
 export function offlineGain(
   gps: number,
   elapsedSeconds: number,

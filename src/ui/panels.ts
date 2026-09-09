@@ -57,6 +57,13 @@ export function createPanels(tooltip: Tooltip): Panels {
       ...row('Gathered by hand', formatGoats(s.goatsFromClicks)),
       ...row('Share by hand', `${byHand.toFixed(1)}%`),
 
+      section('Idle'),
+      ...row(
+        'Herd left alone',
+        stats.idleIn > 0 ? `in ${formatTime(Math.ceil(stats.idleIn))}` : 'yes, right now',
+      ),
+      ...row('Idle bonus', stats.idleMult > 1 ? `×${stats.idleMult.toFixed(2)}` : 'none yet'),
+
       section('Farm'),
       ...row('Buildings owned', stats.buildingsOwned.toLocaleString('en-US')),
       ...row('Upgrades bought', `${s.upgrades.length} of ${UPGRADES.length}`),

@@ -18,6 +18,7 @@ import {
 import {
   addBuff,
   ascend,
+  buyRelic,
   moveGild,
   rerollGild,
   buyBuilding as purchaseBuilding,
@@ -48,13 +49,8 @@ let state = saved ?? createInitialState(Date.now())
 /** Pays out for the time since the save was written. Returns the payout when it was worth mentioning. */
 function payOfflineTime(loaded: GameState): { seconds: number; goats: number } | null {
   const away = (Date.now() - loaded.lastSaved) / 1000
-  const m = multipliers(loaded)
-  const gain = offlineGain(
-    baseGoatsPerSecond(loaded, m),
-    away,
-    OFFLINE_RATE * m.offlineRate,
-    OFFLINE_CAP_SECONDS * m.offlineCap,
-  )
+  // A loaded save is already idle, so this rate carries the Hourglass with it.
+  const gain = offlineGain(baseGoatsPerSecond(loaded), away, OFFLINE_RATE, OFFLINE_CAP_SECONDS)
   if (gain.goats < 1 || gain.seconds < WELCOME_THRESHOLD_SECONDS) return null
   earn(loaded, gain.goats)
   return gain
@@ -105,9 +101,13 @@ const ui = createUi({
     if (purchaseUpgrade(state, id)) refreshPanels()
   },
 
+  buyRelic(id, count) {
+    if (buyRelic(state, id, count) > 0) refreshPanels()
+  },
+
   ascend() {
     const sure = window.confirm(
-      'Give up the farm? Every goat, building and ordinary upgrade goes. You keep your achievements, your occult upgrades, and gain occult points that boost every future herd.',
+      'Give up the farm? Every goat, building and ordinary upgrade goes. You keep your achievements, your relics, and gain occult points that boost every future herd.',
     )
     if (!sure) return
     const result = ascend(state)

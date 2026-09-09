@@ -83,17 +83,22 @@
               <div class="ascend__offer">
                 <p class="ascend__note">
                   Ascending sells the farm: goats, buildings and ordinary upgrades all go.
-                  In return you gain <strong id="occult-pending">+0</strong> occult points.
+                  In return you gain <strong id="occult-pending">0</strong> occult points.
                   Every unspent point boosts all production by 10%, so spending is a trade.
                 </p>
                 <p class="ascend__next" id="occult-next"></p>
                 <button class="btn btn--occult" type="button" id="btn-ascend" disabled>Ascend</button>
               </div>
               <div class="panel-head">
-                <h2 class="panel-head__title">Occult upgrades</h2>
-                <p class="panel-head__hint">Paid in occult points. Kept forever.</p>
+                <h2 class="panel-head__title">Relics</h2>
+                <p class="panel-head__hint">Paid in occult points. Levelled without limit, kept forever.</p>
               </div>
-              <div class="upgrade-grid" id="occult-grid"></div>
+              <div class="amount" id="relic-amount" role="group" aria-label="How many levels to buy at once">
+                <button class="amount__btn amount__btn--active" type="button" data-amount="1">&times;1</button>
+                <button class="amount__btn" type="button" data-amount="10">&times;10</button>
+                <button class="amount__btn" type="button" data-amount="max">Max</button>
+              </div>
+              <div class="relic-list" id="relic-list"></div>
 
               <div class="panel-head">
                 <h2 class="panel-head__title">Gilds</h2>

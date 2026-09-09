@@ -25,7 +25,7 @@ export interface BuildingDef {
   blurb: string
 }
 
-export type UpgradeKind = 'building' | 'click' | 'golden' | 'global' | 'occult'
+export type UpgradeKind = 'building' | 'click' | 'golden' | 'global'
 
 export type Effect =
   /** Multiplies one building's output. */
@@ -46,14 +46,6 @@ export type Effect =
   | { type: 'goldenLife'; factor: number }
   /** Multiplies golden goat rewards. */
   | { type: 'goldenPower'; factor: number }
-  /** Adds to the production percentage each occult point grants. */
-  | { type: 'occultPercent'; percent: number }
-  /** Multiplies the share of production earned while the tab is closed. */
-  | { type: 'offlineRate'; factor: number }
-  /** Multiplies how long time away keeps counting. */
-  | { type: 'offlineCap'; factor: number }
-  /** Goats the herd starts each ascension with. */
-  | { type: 'startGoats'; amount: number }
 
 export interface UpgradeDef {
   id: string
@@ -65,14 +57,66 @@ export interface UpgradeDef {
   /** Flavour text. */
   blurb: string
   kind: UpgradeKind
-  /** Occult upgrades: id of the upgrade that must be owned first. */
-  requires?: string
   building?: BuildingId
   /** Which of a building's upgrade tiers this is, 1-based. */
   tier?: number
   effect: Effect
   /** True when the upgrade should appear in the store. */
   unlocked: (state: GameState) => boolean
+}
+
+export type RelicId =
+  | 'candle'
+  | 'sigil'
+  | 'grimoire'
+  | 'ashes'
+  | 'lantern'
+  | 'hourglass'
+  | 'crown'
+
+export interface RelicDef {
+  id: RelicId
+  name: string
+  icon: string
+  /**
+   * Occult points for the first level. Level L costs this times L, so reaching
+   * level N costs `costStep * N * (N + 1) / 2`.
+   */
+  costStep: number
+  /** What one more level buys, in mechanical terms. */
+  desc: string
+  /** Flavour text. */
+  blurb: string
+  /** Folds `level` levels of this relic into the running multipliers. */
+  apply(m: Multipliers, level: number): void
+  /** What the relic is doing at `level` right now, for the tooltip. */
+  summary(level: number): string
+}
+
+/** Everything the player's upgrades, relics and gilds add up to. */
+export interface Multipliers {
+  /** Per-building output factor: tiers, milestones and gilds together. */
+  building: Record<BuildingId, number>
+  /**
+   * Per-building factor from tier upgrades and gilds only. Click bonuses use
+   * this, so milestones cannot turn a heavy clicker into a runaway; simulated
+   * with milestones included, a click-only player finished 6,000x ahead.
+   */
+  buildingClick: Record<BuildingId, number>
+  global: number
+  clickFlat: number
+  clickMult: number
+  clickCpsPercent: number
+  goldenFreq: number
+  goldenLife: number
+  goldenPower: number
+  /** Production bonus per unspent occult point, in percent. */
+  occultPercent: number
+  /** Production multiplier that applies only while the herd is left alone. */
+  idle: number
+  /** Extra output each gild grants, as a fraction. */
+  gildBonus: number
+  startGoats: number
 }
 
 export interface AchievementDef {
@@ -117,7 +161,16 @@ export interface GameState {
   buildings: Record<BuildingId, number>
   /** Gilds on each building. One is handed out per ascension and they never reset. */
   gilds: Record<BuildingId, number>
-  /** Bought upgrades. Occult ones survive ascension, the rest do not. */
+  /** Level of each occult relic. Levelled with occult points, never reset. */
+  occultLevels: Record<RelicId, number>
+  /**
+   * Occult points granted beyond what the goat curve says they are worth, set
+   * once when a save from an older, more generous curve is migrated. Without it
+   * a grandfathered player owes back every point the retuning took away before
+   * the next one arrives.
+   */
+  occultCredit: number
+  /** Goats bought upgrades. All of them go on ascension. */
   upgrades: string[]
   achievements: string[]
   buffs: Buff[]
@@ -125,6 +178,8 @@ export interface GameState {
   goldenTimer: number
   /** Seconds of play, accumulated. */
   playTime: number
+  /** Seconds since the goat was last petted. Past `BALANCE.idleSeconds` the herd is idle. Not saved. */
+  sincePet: number
   startedAt: number
   lastSaved: number
 }
@@ -138,5 +193,11 @@ export interface Stats {
   /** Output of each building line, buffs included. */
   byBuilding: Record<BuildingId, number>
   globalMult: number
+  /** Extra output each gild is granting, as a fraction. */
+  gildBonus: number
   buildingsOwned: number
+  /** Multiplier the idle relics are paying right now: 1 when the herd is not idle. */
+  idleMult: number
+  /** Seconds until the herd counts as idle, or 0 once it does. */
+  idleIn: number
 }

@@ -1,5 +1,5 @@
 import { BUILDINGS, BUILDING_BY_ID } from './buildings'
-import { OCCULT_UPGRADES } from './upgrades'
+import { RELICS } from './relics'
 import { baseGoatsPerSecond, totalBuildings } from './economy'
 import type { AchievementDef, BuildingId, GameState } from './types'
 
@@ -466,11 +466,25 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     earned: (s) => mostGilds(s) >= 10,
   },
   {
-    id: 'occult-all',
+    id: 'relics-all',
     name: 'Well Read',
     icon: '📖',
-    desc: 'Own every occult upgrade.',
-    earned: (s) => OCCULT_UPGRADES.every((u) => s.upgrades.includes(u.id)),
+    desc: 'Get every relic to level 5.',
+    earned: (s) => RELICS.every((r) => (s.occultLevels[r.id] ?? 0) >= 5),
+  },
+  {
+    id: 'relic-20',
+    name: 'Devoted',
+    icon: '🔱',
+    desc: 'Get a single relic to level 20.',
+    earned: (s) => RELICS.some((r) => (s.occultLevels[r.id] ?? 0) >= 20),
+  },
+  {
+    id: 'idle-hourglass',
+    name: 'Hands Off',
+    icon: '🧘',
+    desc: 'Get the Bottomless Hourglass to level 10.',
+    earned: (s) => (s.occultLevels.hourglass ?? 0) >= 10,
   },
 ]
 

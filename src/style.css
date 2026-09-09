@@ -12,6 +12,8 @@
   --cream-dim: #c8bfa2;
   --gold: #f2c34c;
   --gold-deep: #a4741a;
+  --gild: #46e0c0;
+  --gild-deep: #0f7862;
   --rust: #b8492c;
   --stone: #8b8271;
 
@@ -1154,10 +1156,19 @@ body {
 
 .building__gild {
   align-self: center;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--gold);
-  text-shadow: var(--ink-shadow);
+  color: var(--night);
+  white-space: nowrap;
+  background: linear-gradient(180deg, var(--gild) 0%, var(--gild-deep) 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(70, 224, 192, 0.45);
+}
+
+/* Nothing to show is nothing to draw, badge included. */
+.building__gild:empty {
+  display: none;
 }
 
 .gild-list {
@@ -1171,8 +1182,9 @@ body {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--night);
-  background: linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+  background: linear-gradient(180deg, var(--gild) 0%, var(--gild-deep) 100%);
   border-radius: 999px;
+  box-shadow: 0 0 10px rgba(70, 224, 192, 0.4);
 }
 
 .gild-move {
@@ -1204,6 +1216,7 @@ body {
 /* Touch: no double-tap zoom or long-press callout on things you tap a lot. */
 .big-goat,
 .building,
+.relic,
 .upgrade,
 .badge,
 .tab,
@@ -1211,6 +1224,92 @@ body {
 .mobile-nav__btn {
   touch-action: manipulation;
   -webkit-touch-callout: none;
+}
+
+/* --- relics ---------------------------------------------------------------- */
+.relic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.relic {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) auto auto;
+  gap: 0 0.6rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(90, 47, 154, 0.3) 0%, rgba(30, 20, 45, 0.3) 100%);
+  border: 0;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  transition: background 120ms ease-out;
+}
+
+.relic:hover {
+  background: linear-gradient(180deg, rgba(126, 74, 200, 0.45) 0%, rgba(48, 32, 70, 0.45) 100%);
+}
+
+.relic--short {
+  cursor: not-allowed;
+  filter: grayscale(0.6) brightness(0.72);
+}
+
+.relic__icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  text-align: center;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+.relic__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.relic__name {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  color: var(--cream);
+  text-shadow: var(--ink-shadow);
+}
+
+.relic__effect {
+  font-size: 0.72rem;
+  color: var(--cream-dim);
+}
+
+.relic__cost {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--occult);
+  white-space: nowrap;
+}
+
+.relic--short .relic__cost {
+  color: #e5836a;
+}
+
+.relic__level {
+  min-width: 2.6rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: rgba(247, 240, 218, 0.32);
+  text-align: right;
+  text-shadow: var(--ink-shadow);
+}
+
+/*
+ * The idle bonus is only worth having if you can see it arrive: the goat
+ * settles into a slower, dimmer sway once the herd counts as left alone.
+ */
+.big-goat--idle .big-goat__emoji {
+  animation-duration: 9s;
+  filter: drop-shadow(0 12px 14px rgba(165, 108, 242, 0.45));
 }
 
 /* --- cloud sync ------------------------------------------------------------ */

@@ -24,7 +24,6 @@ const KIND_LABELS: Record<UpgradeDef['kind'], string> = {
   click: 'Petting upgrade',
   golden: 'Golden goat upgrade',
   global: 'Herd-wide upgrade',
-  occult: 'Occult upgrade',
 }
 
 interface View {
@@ -100,7 +99,7 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
         `, then every ${BALANCE.milestoneStep}`,
     )
     const gilds = state.gilds[def.id]
-    if (gilds > 0) lines.push(`${gilds} gild${gilds === 1 ? '' : 's'}: +${gilds * BALANCE.gildBonus * 100}% output`)
+    if (gilds > 0) lines.push(`${gilds} gild${gilds === 1 ? '' : 's'}: +${gilds * stats.gildBonus * 100}% output`)
 
     // Building tiers double the click bonus along with production.
     const perClick = def.baseClick ? def.baseClick * (owned > 0 ? perUnit / def.baseCps : 1) : 0
@@ -182,7 +181,7 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
         setText(row.name, shown ? def.name : '???')
         setText(row.cost, shown ? `🐐 ${formatShort(price)}` : '???')
         setText(row.owned, owned > 0 ? String(owned) : '')
-        setText(row.gild, state.gilds[def.id] > 0 ? `✨${state.gilds[def.id]}` : '')
+        setText(row.gild, state.gilds[def.id] > 0 ? `✦ ${state.gilds[def.id]}` : '')
 
         toggleClass(row.root, 'building--hidden', !shown)
         toggleClass(row.root, 'building--short', shown && state.goats < price)

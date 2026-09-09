@@ -2,10 +2,11 @@ import { newlyEarned } from './achievements'
 import { BALANCE } from './balance'
 import { BUILDING_BY_ID, BUILDING_IDS } from './buildings'
 import { bulkCost, goatsPerClick, goatsPerSecond, multipliers } from './economy'
+import { RELIC_BY_ID, emptyRelics, relicAffordable, relicBulkCost } from './relics'
 import { UPGRADE_BY_ID } from './upgrades'
-import type { AchievementDef, Buff, BuildingId, GameState } from './types'
+import type { AchievementDef, Buff, BuildingId, GameState, RelicId } from './types'
 
-export const SAVE_VERSION = 2
+export const SAVE_VERSION = 3
 
 
 export function emptyBuildings(): Record<BuildingId, number> {
@@ -24,6 +25,8 @@ export function createInitialState(now: number): GameState {
     occult: 0,
     occultEarned: 0,
     lifetimeGoats: 0,
+    occultLevels: emptyRelics(),
+    occultCredit: 0,
     buildings: emptyBuildings(),
     gilds: emptyBuildings(),
     upgrades: [],
@@ -31,6 +34,7 @@ export function createInitialState(now: number): GameState {
     buffs: [],
     goldenTimer: BALANCE.goldenFirstDelay,
     playTime: 0,
+    sincePet: 0,
     startedAt: now,
     lastSaved: now,
   }
@@ -44,6 +48,9 @@ export function earn(state: GameState, amount: number): void {
 
 /** One pet of the goat. Returns what it gathered. */
 export function petGoat(state: GameState): number {
+  // The clock resets before the pet is priced, so the pet itself never collects
+  // the idle bonus it just cancelled.
+  state.sincePet = 0
   const gain = goatsPerClick(state)
   earn(state, gain)
   state.goatsFromClicks += gain
@@ -51,8 +58,9 @@ export function petGoat(state: GameState): number {
   return gain
 }
 
-/** Idle production for `dt` seconds. Returns what it gathered. */
+/** Hands-off production for `dt` seconds. Returns what it gathered. */
 export function produce(state: GameState, dt: number): number {
+  state.sincePet += dt
   const gain = goatsPerSecond(state) * dt
   earn(state, gain)
   return gain
@@ -72,12 +80,27 @@ export function buyUpgrade(state: GameState, id: string): boolean {
   if (!def) return false
   if (state.upgrades.includes(id)) return false
   if (!def.unlocked(state)) return false
-  // Occult upgrades are paid for in occult points, everything else in goats.
-  const wallet = def.kind === 'occult' ? 'occult' : 'goats'
-  if (state[wallet] < def.cost) return false
-  state[wallet] -= def.cost
+  if (state.goats < def.cost) return false
+  state.goats -= def.cost
   state.upgrades.push(id)
   return true
+}
+
+/**
+ * Levels a relic with occult points. `count` of `'max'` takes as many levels as
+ * the points stretch to. Returns how many levels were actually bought.
+ */
+export function buyRelic(state: GameState, id: RelicId, count: number | 'max' = 1): number {
+  const def = RELIC_BY_ID.get(id)
+  if (!def) return 0
+  const level = state.occultLevels[id] ?? 0
+  const wanted = count === 'max' ? relicAffordable(def, level, state.occult) : Math.floor(count)
+  if (wanted < 1) return 0
+  const price = relicBulkCost(def, level, wanted)
+  if (state.occult < price) return 0
+  state.occult -= price
+  state.occultLevels[id] = level + wanted
+  return wanted
 }
 
 /**
@@ -96,9 +119,20 @@ export function goatsForOccultLevel(level: number): number {
   return BALANCE.occultUnit * (10 ** (level / BALANCE.occultPerDecade) - 1)
 }
 
-/** Occult points ascending right now would grant. */
+/**
+ * Occult points ascending right now would grant. The credit covers points a
+ * grandfathered save was handed under an older, more generous curve, so the
+ * next point is one step up the current curve rather than a hundred thousand.
+ */
 export function pendingOccult(state: GameState): number {
-  return occultLevel(state.lifetimeGoats + state.totalGoats) - state.occultEarned
+  const worth = occultLevel(state.lifetimeGoats + state.totalGoats) + state.occultCredit
+  return Math.max(0, worth - state.occultEarned)
+}
+
+/** Lifetime goats this save needs before one more point is on offer. */
+export function goatsForNextOccult(state: GameState): number {
+  const next = state.occultEarned + pendingOccult(state) + 1 - state.occultCredit
+  return goatsForOccultLevel(next) - (state.lifetimeGoats + state.totalGoats)
 }
 
 
@@ -112,7 +146,7 @@ export interface Ascension {
 /**
  * Gives up the farm for occult points, and a gild on a random building owned
  * this run for every few points ever earned. Buildings, goats and ordinary
- * upgrades go; achievements, occult upgrades, gilds and lifetime stats stay.
+ * upgrades go; achievements, relics, gilds and lifetime stats stay.
  */
 export function ascend(state: GameState, rng: () => number = Math.random): Ascension {
   const gain = pendingOccult(state)
@@ -137,7 +171,7 @@ export function ascend(state: GameState, rng: () => number = Math.random): Ascen
   state.goats = 0
   state.totalGoats = 0
   state.buildings = emptyBuildings()
-  state.upgrades = state.upgrades.filter((id) => UPGRADE_BY_ID.get(id)?.kind === 'occult')
+  state.upgrades = []
   state.buffs = []
   state.goldenTimer = BALANCE.goldenFirstDelay
 

@@ -11,9 +11,11 @@ import type { Balance } from './balance'
 import { BUILDINGS, BUILDING_IDS } from './buildings'
 import { baseGoatsPerSecond, bulkCost, computeStats, goatsPerClick, multipliers, nextMilestone } from './economy'
 import { goldenLifetime, nextGoldenDelay, rollGolden } from './golden'
+import { RELICS, relicCost } from './relics'
 import {
   ascend,
   buyBuilding,
+  buyRelic,
   buyUpgrade,
   claimAchievements,
   createInitialState,
@@ -22,8 +24,8 @@ import {
   pendingOccult,
   rerollGild,
 } from './state'
-import { OCCULT_UPGRADES, UPGRADES, availableUpgrades } from './upgrades'
-import type { BuildingId, GameState } from './types'
+import { UPGRADES, availableUpgrades } from './upgrades'
+import type { BuildingId, GameState, RelicId } from './types'
 
 interface Scenario {
   name: string
@@ -45,6 +47,14 @@ interface Scenario {
   ascend?: 'often' | 'normal' | 'rare'
   /** Occult spending: greedy on immediate income, 'smart' (production only, no gild moves), or never. */
   spend?: 'greedy' | 'smart' | 'never'
+  /**
+   * Play idle: pet only to get a fresh run moving, then leave the herd alone so
+   * the Hourglass pays. An empty pasture produces nothing, so even an idler has
+   * to start each run by hand.
+   */
+  idle?: boolean
+  /** Only let the spender level these relics. Omit to allow all of them. */
+  relics?: RelicId[]
 }
 
 /** Pets per second while a Petting Frenzy is running and the player is at the screen. */
@@ -76,7 +86,7 @@ interface Option {
 
 function run(sc: Scenario) {
   const hoursTotal = sc.hours ?? 400
-  let pets = sc.petsPerSecond ?? 3
+  let pets = sc.idle ? 0 : (sc.petsPerSecond ?? 3)
   const income = (s: GameState) => baseGoatsPerSecond(s) + goatsPerClick(s) * pets
   /** Production lost by spending `points` occult, in goats per second. */
   const pointCost = (s: GameState, points: number) => {
@@ -124,17 +134,22 @@ function run(sc: Scenario) {
     // The smart spender judges on steady production, so a burst of petting cannot sell it a click upgrade.
     const worth = sc.spend === 'smart' ? baseGoatsPerSecond : income
     for (;;) {
-      let pick: { id: string; gain: number } | undefined
-      for (const u of OCCULT_UPGRADES) {
-        if (s.upgrades.includes(u.id) || !u.unlocked(s) || s.occult < u.cost) continue
+      let pick: { def: (typeof RELICS)[number]; eff: number } | undefined
+      for (const def of RELICS) {
+        if (sc.relics && !sc.relics.includes(def.id)) continue
+        const level = s.occultLevels[def.id] ?? 0
+        const price = relicCost(def, level)
+        if (s.occult < price) continue
         const trial = structuredClone(s)
-        trial.upgrades.push(u.id)
-        trial.occult -= u.cost
+        trial.occultLevels[def.id] = level + 1
+        trial.occult -= price
+        // A point held is a point earning, so a level has to beat what holding it pays.
         const gain = worth(trial) - worth(s)
-        if (gain > 0 && (!pick || gain > pick.gain)) pick = { id: u.id, gain }
+        const eff = gain / price
+        if (gain > 0 && (!pick || eff > pick.eff)) pick = { def, eff }
       }
       if (!pick) return
-      buyUpgrade(s, pick.id)
+      buyRelic(s, pick.def.id, 1)
     }
   }
 
@@ -142,7 +157,7 @@ function run(sc: Scenario) {
   const manageGilds = (s: GameState, rng: () => number) => {
     for (let guard = 0; guard < 50; guard++) {
       const stats = computeStats(s)
-      const perGild = (id: BuildingId) => (stats.byBuilding[id] / (1 + BALANCE.gildBonus * s.gilds[id])) * BALANCE.gildBonus
+      const perGild = (id: BuildingId) => (stats.byBuilding[id] / (1 + stats.gildBonus * s.gilds[id])) * stats.gildBonus
       const target = BUILDING_IDS.reduce((a, b) => (stats.byBuilding[b] > stats.byBuilding[a] ? b : a))
       if (stats.byBuilding[target] <= 0) return
       const sources = BUILDING_IDS.filter((id) => id !== target && s.gilds[id] > 0)
@@ -206,7 +221,10 @@ function run(sc: Scenario) {
 
   try {
     while (t < hoursTotal * 3600) {
-      if (sc.petsPerSecond === undefined) pets = realisticPets(t - runStart)
+      if (sc.idle) pets = baseGoatsPerSecond(s) > 0 ? 0 : 3
+      else if (sc.petsPerSecond === undefined) pets = realisticPets(t - runStart)
+      // Petting at all keeps the clock at zero; leaving the herd alone runs it out.
+      s.sincePet = pets > 0 ? 0 : BALANCE.idleSeconds
       const pending = pendingOccult(s)
       const ready =
         sc.ascend === 'often'
@@ -289,6 +307,7 @@ function run(sc: Scenario) {
     `  ascensions (${ascensions.length}): ${asc}`,
     `  achievements earned by 1h/8h/24h/96h/400h: ${[1, 8, 24, 96, 400].map(achievementsBy).join('/')} of ${ACHIEVEMENTS.length}; never: ${never.length} (${never.slice(0, 12).join(',')}${never.length > 12 ? ',…' : ''})`,
     `  upgrades bought at end: ${s.upgrades.length} of ${UPGRADES.length}; gild actions: ${gildActions}; longest wait: ${(longestWait / 3600).toFixed(1)}h`,
+    `  relics: ${RELICS.map((r) => `${r.id}=${s.occultLevels[r.id] ?? 0}`).join(' ')}`,
   ].join('\n')
 }
 
@@ -296,6 +315,15 @@ const SCENARIOS: Scenario[] = [
   { name: 'greedy spender: buys anything that lifts income now, rerolls gilds', goldens: true },
   { name: 'smart spender: production upgrades only, no gild moves', goldens: true, spend: 'smart' },
   { name: 'hoarder: never spends a point', goldens: true, spend: 'never' },
+  { name: 'idle build: never pets, lives off the Hourglass', goldens: true, idle: true },
+  { name: 'idle, smart spender: the fair comparison against the smart spender above', goldens: true, idle: true, spend: 'smart' },
+  {
+    name: 'idle build without the Hourglass: shows what the relic itself is worth',
+    goldens: true,
+    idle: true,
+    relics: ['candle', 'sigil', 'grimoire', 'ashes', 'lantern', 'crown'],
+  },
+  { name: 'click build: pets three a second forever', goldens: true, petsPerSecond: 3 },
 ]
 
 test.skipIf(!import.meta.env.VITE_SIM)('balance sweep', () => {

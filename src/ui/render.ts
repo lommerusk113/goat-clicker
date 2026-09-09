@@ -1,6 +1,6 @@
-import type { BuildingId, GameState, Stats } from '../game/types'
+import type { BuildingId, GameState, RelicId, Stats } from '../game/types'
 import { createAscend } from './ascend'
-import { byId, el, setText } from './dom'
+import { byId, el, setText, toggleClass } from './dom'
 import { formatGoats, formatRate, formatShort, formatTime } from './format'
 import { createPanels } from './panels'
 import { createParticles } from './particles'
@@ -17,6 +17,7 @@ export interface UiHandlers {
   pet(): number
   buyBuilding(id: BuildingId, count: number): void
   buyUpgrade(id: string): void
+  buyRelic(id: RelicId, count: number | 'max'): void
   ascend(): void
   moveGild(from: BuildingId, to: BuildingId): void
   rerollGild(from: BuildingId): void
@@ -56,7 +57,7 @@ export function createUi(handlers: UiHandlers): Ui {
   })
   const panels = createPanels(tooltip)
   const ascendPanel = createAscend(tooltip, {
-    buyUpgrade: handlers.buyUpgrade,
+    buyRelic: handlers.buyRelic,
     ascend: handlers.ascend,
     moveGild: handlers.moveGild,
     rerollGild: handlers.rerollGild,
@@ -191,6 +192,8 @@ export function createUi(handlers: UiHandlers): Ui {
       setText(navGoats, formatShort(state.goats))
       setText(rateNode, formatRate(stats.gps))
       setText(perClickNode, formatRate(stats.perClick))
+      // The idle bonus is worth nothing the player cannot see coming.
+      toggleClass(bigGoat, 'big-goat--idle', stats.idleMult > 1)
       drawBuffs(state)
       drawHerd(stats.buildingsOwned)
     },

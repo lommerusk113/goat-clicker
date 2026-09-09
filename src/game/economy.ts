@@ -1,7 +1,10 @@
 import { BALANCE } from './balance'
 import { BUILDINGS, BUILDING_IDS } from './buildings'
+import { applyRelics } from './relics'
 import { UPGRADE_BY_ID } from './upgrades'
-import type { BuildingDef, BuildingId, GameState, Stats } from './types'
+import type { BuildingDef, BuildingId, GameState, Multipliers, Stats } from './types'
+
+export type { Multipliers } from './types'
 
 /**
  * Output multiplier a building earns just from how many are owned: ×4 at 200
@@ -39,31 +42,7 @@ export function totalBuildings(state: GameState): number {
   return n
 }
 
-export interface Multipliers {
-  /** Per-building output factor: tiers, milestones and gilds together. */
-  building: Record<BuildingId, number>
-  /**
-   * Per-building factor from tier upgrades and gilds only. Click bonuses use
-   * this, so milestones cannot turn a heavy clicker into a runaway; simulated
-   * with milestones included, a click-only player finished 6,000x ahead.
-   */
-  buildingClick: Record<BuildingId, number>
-  global: number
-  clickFlat: number
-  clickMult: number
-  clickCpsPercent: number
-  goldenFreq: number
-  goldenLife: number
-  goldenPower: number
-  /** Production bonus per occult point earned, in percent. */
-  occultPercent: number
-  offlineRate: number
-  offlineCap: number
-  startGoats: number
-}
-
-
-/** Everything the player's purchased upgrades add up to. */
+/** Everything the player's upgrades, relics and gilds add up to. */
 export function multipliers(state: GameState): Multipliers {
   const building = Object.fromEntries(BUILDING_IDS.map((id) => [id, 1])) as Record<
     BuildingId,
@@ -80,8 +59,8 @@ export function multipliers(state: GameState): Multipliers {
     goldenLife: 1,
     goldenPower: 1,
     occultPercent: BALANCE.occultBasePercent,
-    offlineRate: 1,
-    offlineCap: 1,
+    idle: 1,
+    gildBonus: BALANCE.gildBonus,
     startGoats: 0,
   }
 
@@ -117,22 +96,16 @@ export function multipliers(state: GameState): Multipliers {
       case 'goldenPower':
         m.goldenPower *= e.factor
         break
-      case 'occultPercent':
-        m.occultPercent += e.percent
-        break
-      case 'offlineRate':
-        m.offlineRate *= e.factor
-        break
-      case 'offlineCap':
-        m.offlineCap *= e.factor
-        break
-      case 'startGoats':
-        m.startGoats += e.amount
-        break
     }
   }
+
+  // Relics come after the goat-bought upgrades and before anything that reads
+  // the totals: the Grimoire changes what a point is worth and the Crown
+  // changes what a gild is worth, so both have to land first.
+  applyRelics(state, m)
+
   for (const id of BUILDING_IDS) {
-    const gilded = 1 + BALANCE.gildBonus * state.gilds[id]
+    const gilded = 1 + m.gildBonus * state.gilds[id]
     m.buildingClick[id] = m.building[id] * gilded
     m.building[id] *= milestoneMult(state.buildings[id]) * gilded
   }
@@ -147,11 +120,30 @@ function buffMult(state: GameState, kind: 'gpsMult' | 'clickMult'): number {
   return f
 }
 
+/** True once the goat has been left alone long enough for the idle relics to pay. */
+export function isIdle(state: GameState): boolean {
+  return state.sincePet >= BALANCE.idleSeconds
+}
+
+/** Seconds until the herd counts as idle. Zero once it does. */
+export function idleIn(state: GameState): number {
+  return Math.max(0, BALANCE.idleSeconds - state.sincePet)
+}
+
+/**
+ * What the idle relics are paying right now. Petting resets the clock before
+ * the pet is priced, so a click never collects this — the two builds do not
+ * overlap, which is the whole point of the Hourglass.
+ */
+export function idleMult(state: GameState, m = multipliers(state)): number {
+  return isIdle(state) ? m.idle : 1
+}
+
 /** Production per second before golden-goat buffs. Click bonuses key off this. */
 export function baseGoatsPerSecond(state: GameState, m = multipliers(state)): number {
   let gps = 0
   for (const b of BUILDINGS) gps += state.buildings[b.id] * b.baseCps * m.building[b.id]
-  return gps * m.global
+  return gps * m.global * idleMult(state, m)
 }
 
 export function goatsPerSecond(state: GameState, m = multipliers(state)): number {
@@ -183,9 +175,10 @@ export function computeStats(state: GameState): Stats {
     BuildingId,
     number
   >
+  const idle = idleMult(state, m)
   let gps = 0
   for (const b of BUILDINGS) {
-    const line = state.buildings[b.id] * b.baseCps * m.building[b.id] * m.global * gpsBuff
+    const line = state.buildings[b.id] * b.baseCps * m.building[b.id] * m.global * idle * gpsBuff
     byBuilding[b.id] = line
     gps += line
   }
@@ -196,6 +189,9 @@ export function computeStats(state: GameState): Stats {
     perClick: goatsPerClick(state, m),
     byBuilding,
     globalMult: m.global,
+    gildBonus: m.gildBonus,
     buildingsOwned: totalBuildings(state),
+    idleMult: idle,
+    idleIn: idleIn(state),
   }
 }

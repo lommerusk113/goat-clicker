@@ -305,156 +305,18 @@ const GLOBAL_UPGRADES: UpgradeDef[] = [
   },
 ]
 
-/**
- * Bought with occult points instead of goats, and kept through ascension.
- * `requires` names the upgrade that has to be owned first, so they form a
- * short tree rather than a flat shop.
- */
-function occult(
-  def: Omit<UpgradeDef, 'kind' | 'unlocked'>,
-): UpgradeDef {
-  return {
-    ...def,
-    kind: 'occult',
-    unlocked: (s) => !def.requires || s.upgrades.includes(def.requires),
-  }
-}
-
-export const OCCULT_UPGRADES: UpgradeDef[] = [
-  occult({
-    id: 'occult-candle',
-    name: 'Tallow Candle',
-    icon: '🕯️',
-    cost: 1,
-    desc: 'All production +50%.',
-    blurb: 'Rendered from a goat that volunteered. Allegedly.',
-    effect: { type: 'globalMult', factor: 1.5 },
-  }),
-  occult({
-    id: 'occult-ashes',
-    name: 'Ashes of the Old Farm',
-    icon: '⚱️',
-    cost: 3,
-    requires: 'occult-candle',
-    desc: 'Start every ascension with 10,000 goats.',
-    blurb: 'Scattered over the new pasture. The grass comes up already chewed.',
-    effect: { type: 'startGoats', amount: 10_000 },
-  }),
-  occult({
-    id: 'occult-sigil',
-    name: 'Hoofprint Sigil',
-    icon: '✴️',
-    cost: 2,
-    requires: 'occult-candle',
-    desc: 'Petting is three times as effective.',
-    blurb: 'Drawn in the mud by a goat that knew exactly what it was doing.',
-    effect: { type: 'clickMult', factor: 3 },
-  }),
-  occult({
-    id: 'occult-grimoire',
-    name: 'Grimoire of Bleats',
-    icon: '📕',
-    cost: 3,
-    requires: 'occult-candle',
-    desc: 'Each unspent occult point grants an extra 3% production, on top of the usual 10%.',
-    blurb: 'Every page says the same word. The meaning changes with the reader.',
-    effect: { type: 'occultPercent', percent: 3 },
-  }),
-  occult({
-    id: 'occult-lantern',
-    name: 'Lantern in the Fog',
-    icon: '🏮',
-    cost: 3,
-    requires: 'occult-candle',
-    desc: 'Golden goats stay 50% longer.',
-    blurb: 'They are drawn to the light. So is everything else.',
-    effect: { type: 'goldenLife', factor: 1.5 },
-  }),
-  occult({
-    id: 'occult-hourglass',
-    name: 'Bottomless Hourglass',
-    icon: '⏳',
-    cost: 5,
-    requires: 'occult-ashes',
-    desc: 'Time away pays at full rate instead of half.',
-    blurb: 'The sand runs out. Then it keeps running.',
-    effect: { type: 'offlineRate', factor: 2 },
-  }),
-  occult({
-    id: 'occult-bell',
-    name: 'Black Bell',
-    icon: '🪬',
-    cost: 6,
-    requires: 'occult-lantern',
-    desc: 'Golden goats wander in 30% more often.',
-    blurb: 'Rings once, somewhere behind you.',
-    effect: { type: 'goldenFreq', factor: 1.3 },
-  }),
-  occult({
-    id: 'occult-moon',
-    name: 'Lunar Calendar',
-    icon: '🌙',
-    cost: 8,
-    requires: 'occult-hourglass',
-    desc: 'Time away counts for up to twelve hours instead of three.',
-    blurb: 'Every phase is marked as a good night for grazing.',
-    effect: { type: 'offlineCap', factor: 4 },
-  }),
-  occult({
-    id: 'occult-eye',
-    name: 'The Watching Eye',
-    icon: '👁️',
-    cost: 8,
-    requires: 'occult-grimoire',
-    desc: 'Each unspent occult point grants an extra 5% production.',
-    blurb: 'It does not blink. It does not need to.',
-    effect: { type: 'occultPercent', percent: 5 },
-  }),
-  occult({
-    id: 'occult-crown',
-    name: 'Horned Crown',
-    icon: '👑',
-    cost: 12,
-    requires: 'occult-sigil',
-    desc: 'Petting is three times as effective.',
-    blurb: 'Heavy. Pointy. Yours now.',
-    effect: { type: 'clickMult', factor: 3 },
-  }),
-  occult({
-    id: 'occult-covenant',
-    name: 'Covenant of the Herd',
-    icon: '📜',
-    cost: 12,
-    requires: 'occult-eye',
-    desc: 'All production tripled.',
-    blurb: 'Signed in hoofprints. Binding in every pasture.',
-    effect: { type: 'globalMult', factor: 3 },
-  }),
-  occult({
-    id: 'occult-eclipse',
-    name: 'Eclipse',
-    icon: '🌑',
-    cost: 15,
-    requires: 'occult-covenant',
-    desc: 'Each unspent occult point grants an extra 10% production.',
-    blurb: 'The sun stepped aside. The herd did not notice.',
-    effect: { type: 'occultPercent', percent: 10 },
-  }),
-]
-
 export const UPGRADES: UpgradeDef[] = [
   ...buildingUpgrades(),
   ...CLICK_UPGRADES,
   ...GOLDEN_UPGRADES,
   ...GLOBAL_UPGRADES,
-  ...OCCULT_UPGRADES,
 ]
 
 export const UPGRADE_BY_ID = new Map<string, UpgradeDef>(UPGRADES.map((u) => [u.id, u]))
 
-/** Goat-priced upgrades the player can see but has not bought, cheapest first. */
+/** Upgrades the player can see but has not bought, cheapest first. */
 export function availableUpgrades(state: GameState): UpgradeDef[] {
-  return UPGRADES.filter(
-    (u) => u.kind !== 'occult' && !state.upgrades.includes(u.id) && u.unlocked(state),
-  ).sort((a, b) => a.cost - b.cost)
+  return UPGRADES.filter((u) => !state.upgrades.includes(u.id) && u.unlocked(state)).sort(
+    (a, b) => a.cost - b.cost,
+  )
 }
