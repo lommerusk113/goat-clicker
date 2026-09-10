@@ -99,9 +99,12 @@ only packages, and all of them are dev-only.
 - **Cloud sync** is optional and needs no account. Turning it on in Settings
   mints a random sync code; entering that code on another device links it to
   the same herd. The save is pushed once a minute and when the tab hides, and
-  pulled on load. Whichever device saved last wins, and a stale device is never
-  allowed to overwrite a newer cloud save. The code is the only key, so treat it
-  like a password.
+  pulled on load and whenever the tab comes back into view. Each device
+  remembers which cloud save it last saw; a push is refused when another device
+  has saved since, and the pusher adopts that save instead. So the device you
+  played most recently wins, even if another tab was left open. Linking a
+  device to an existing code always joins that herd. The code is the only key,
+  so treat it like a password.
 
 ## Hosting and cloud sync
 

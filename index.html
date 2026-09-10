@@ -10,6 +10,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Kavoon&family=Nunito:ital,wght@0,400;0,700;0,900;1,400&family=Chivo+Mono:wght@400;700&display=swap"
+    />
+    <!-- Only the goat glyph, so every device draws Android's goat rather than its own emoji font's. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&text=%F0%9F%90%90&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -148,7 +153,7 @@
               <div id="sync-off">
                 <p class="settings__note">
                   Turn on cloud sync to get a sync code. Enter the same code on another device and
-                  both play the same herd; whichever saved last wins.
+                  both play the same herd; the device you played most recently wins.
                 </p>
                 <div class="settings__row">
                   <button class="btn" type="button" id="btn-sync-enable">Turn on cloud sync</button>
@@ -213,7 +218,7 @@
         <h2 class="welcome__title" id="welcome-title">The herd kept busy</h2>
         <p class="welcome__body">
           You were away <strong id="welcome-time">a while</strong>. The goats gathered
-          <strong id="welcome-goats">0</strong> more while you were gone.
+          <strong id="welcome-goats">0</strong> more while you were gone.<span id="welcome-cap"></span>
         </p>
         <button class="btn" type="button" id="welcome-ok">Back to work</button>
       </div>

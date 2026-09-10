@@ -1,8 +1,10 @@
 /**
  * Cloud save endpoint, deployed with the site as a Cloudflare Pages Function.
- * One save blob per sync token, last write wins, except that a stale write
- * (an older `lastSaved` than what is stored) is refused so a device that has
- * been offline cannot clobber a newer save from another one.
+ * One save blob per sync token. A client says which cloud save it last saw
+ * (`x-base-saved`, the `lastSaved` of that save); a write is refused when
+ * another device has stored something newer since, so the client adopts that
+ * instead of clobbering it. Without the header the save's own `lastSaved` is
+ * compared, which only guards against a device that has been offline.
  */
 
 /** The slice of Cloudflare's KVNamespace this file uses; keeps workers-types out of the build. */
@@ -68,9 +70,11 @@ export const onRequestPut = async ({ request, env, params }: Context): Promise<R
   const lastSaved = lastSavedOf(code)
   if (lastSaved === null) return reply(400, 'not a save')
 
+  const base = Number(request.headers.get('x-base-saved') ?? NaN)
+  const seen = Number.isFinite(base) ? base : lastSaved
   const current = await env.SAVES.getWithMetadata(token)
-  if (current.value !== null && current.metadata && current.metadata.lastSaved > lastSaved) {
-    // The stored save is newer: hand it back so the client can adopt it.
+  if (current.value !== null && current.metadata && current.metadata.lastSaved > seen) {
+    // Another device stored a newer save since this one last looked: hand it back.
     return reply(409, current.value)
   }
 

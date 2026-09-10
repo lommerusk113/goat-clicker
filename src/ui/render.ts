@@ -39,7 +39,8 @@ export interface Ui {
   /** Puts a golden goat on screen. `onCatch` reports what catching it gave. */
   showGolden(lifetime: number, onCatch: () => string): void
   status(message: string): void
-  welcome(seconds: number, goats: number): void
+  /** `away` is the real time gone; `paid` is how much of it the herd worked, after the offline cap. */
+  welcome(gain: { away: number; paid: number; goats: number }): void
   /** Shows the cloud sync section for the given code, or the "turn on" state for null. */
   sync(token: string | null): void
 }
@@ -236,9 +237,10 @@ export function createUi(handlers: UiHandlers): Ui {
       statusTimer = window.setTimeout(() => setText(statusNode, ''), 4_000)
     },
 
-    welcome(seconds, goats) {
-      setText(byId('welcome-time'), formatTime(seconds))
+    welcome({ away, paid, goats }) {
+      setText(byId('welcome-time'), formatTime(away))
       setText(byId('welcome-goats'), `${formatGoats(goats)} goats`)
+      setText(byId('welcome-cap'), paid < away ? ` They knocked off after ${formatTime(paid)}, as goats do.` : '')
       welcomeNode.hidden = false
     },
 

@@ -30,7 +30,7 @@ import {
   produce,
   tickBuffs,
 } from './game/state'
-import { isSyncToken, loadSyncToken, newSyncToken, pullSave, pushSave, storeSyncToken } from './sync'
+import { SEEN_KEY, isSyncToken, loadSyncToken, newSyncToken, pullSave, pushSave, storeSyncToken } from './sync'
 import { formatGoats } from './ui/format'
 import { createUi } from './ui/render'
 
@@ -46,14 +46,22 @@ const WELCOME_THRESHOLD_SECONDS = 30
 const saved = loadGame(localStorage)
 let state = saved ?? createInitialState(Date.now())
 
+interface Welcome {
+  /** Seconds since the save was written. */
+  away: number
+  /** Seconds actually paid for, after the offline cap. */
+  paid: number
+  goats: number
+}
+
 /** Pays out for the time since the save was written. Returns the payout when it was worth mentioning. */
-function payOfflineTime(loaded: GameState): { seconds: number; goats: number } | null {
+function payOfflineTime(loaded: GameState): Welcome | null {
   const away = (Date.now() - loaded.lastSaved) / 1000
   // A loaded save is already idle, so this rate carries the Hourglass with it.
   const gain = offlineGain(baseGoatsPerSecond(loaded), away, OFFLINE_RATE, OFFLINE_CAP_SECONDS)
   if (gain.goats < 1 || gain.seconds < WELCOME_THRESHOLD_SECONDS) return null
   earn(loaded, gain.goats)
-  return gain
+  return { away, paid: gain.seconds, goats: gain.goats }
 }
 
 // Pay out for the time the tab was closed before anything else touches state.
@@ -61,33 +69,46 @@ const welcomeBack = saved ? payOfflineTime(state) : null
 
 // --- cloud sync ---------------------------------------------------------------
 let syncToken = loadSyncToken(localStorage)
-/** Cloud writes wait until the first pull has had its say, so a stale device cannot overwrite a newer save. */
-let cloudReady = syncToken === null
+/**
+ * `lastSaved` of the cloud save this browser last wrote or adopted. Every open
+ * tab bumps its own `lastSaved` every few seconds, so that cannot tell whose
+ * save is newer; a cloud save is only news when it is newer than this.
+ */
+let cloudSeen = Number(localStorage.getItem(SEEN_KEY)) || 0
 
-/** Swaps in a save from the cloud when it is newer than what this browser had. */
+function markSeen(lastSaved: number): void {
+  cloudSeen = lastSaved
+  localStorage.setItem(SEEN_KEY, String(lastSaved))
+}
+
+/** Swaps in a save from the cloud when another device has saved since this one last looked. */
 function adoptCloudSave(code: string, quiet = false): boolean {
   const remote = decodeSave(code)
-  if (!remote || remote.lastSaved <= state.lastSaved) return false
+  if (!remote || remote.lastSaved <= cloudSeen) return false
+  markSeen(remote.lastSaved)
   state = remote
   const gain = payOfflineTime(state)
   saveGame(state, localStorage, Date.now())
   refreshPanels()
-  if (!quiet) ui.toast({ icon: '☁️', kind: 'Cloud', name: 'Save loaded', desc: 'A newer herd came in from the cloud.' })
-  if (gain) ui.welcome(gain.seconds, gain.goats)
+  if (quiet) return true
+  ui.toast({ icon: '☁️', kind: 'Cloud', name: 'Save loaded', desc: 'A newer herd came in from the cloud.' })
+  if (gain) ui.welcome(gain)
   return true
 }
 
-async function pullCloud(): Promise<void> {
+async function pullCloud(quiet = false): Promise<void> {
   if (!syncToken) return
   const code = await pullSave(syncToken)
-  if (code) adoptCloudSave(code, true)
-  cloudReady = true
+  if (code) adoptCloudSave(code, quiet)
 }
 
-async function pushCloud(keepalive = false): Promise<void> {
-  if (!syncToken || !cloudReady) return
-  const result = await pushSave(syncToken, encodeSave(state), keepalive)
-  if (result.status === 'stale') adoptCloudSave(result.code)
+/** Uploads this herd unless another device has saved since `base`; then that herd is adopted instead. */
+async function pushCloud(keepalive = false, base = cloudSeen): Promise<void> {
+  if (!syncToken) return
+  const lastSaved = state.lastSaved
+  const result = await pushSave(syncToken, encodeSave(state), base, keepalive)
+  if (result.status === 'saved') markSeen(lastSaved)
+  else if (result.status === 'stale') adoptCloudSave(result.code, true)
 }
 
 const ui = createUi({
@@ -179,7 +200,8 @@ const ui = createUi({
     saveGame(state, localStorage, Date.now())
     refreshPanels()
     if (syncToken) {
-      void pushCloud().then(() => ui.status('Farm sold, here and in the cloud. Fresh pasture, one goat at a time.'))
+      // Selling outranks whatever another device saved meanwhile, so push as if we had just seen it.
+      void pushCloud(false, Date.now()).then(() => ui.status('Farm sold, here and in the cloud. Fresh pasture, one goat at a time.'))
     } else {
       ui.status('Farm sold. Fresh pasture, one goat at a time.')
     }
@@ -188,7 +210,7 @@ const ui = createUi({
   enableSync() {
     syncToken = newSyncToken()
     storeSyncToken(localStorage, syncToken)
-    cloudReady = true
+    markSeen(0)
     saveGame(state, localStorage, Date.now())
     ui.sync(syncToken)
     pushCloud().then(() => ui.status('Cloud sync is on. Enter this code on another device to share the herd.'))
@@ -202,12 +224,12 @@ const ui = createUi({
     }
     syncToken = token
     storeSyncToken(localStorage, token)
-    cloudReady = false
+    // The code names a herd that already exists somewhere; linking means joining it.
+    markSeen(0)
     ui.sync(token)
     const remote = await pullSave(token)
-    cloudReady = true
     if (remote && adoptCloudSave(remote, true)) {
-      ui.status('Linked. The cloud herd was newer, so it is now the one you are playing.')
+      ui.status('Linked. You are now playing the cloud herd.')
     } else {
       saveGame(state, localStorage, Date.now())
       await pushCloud()
@@ -218,6 +240,7 @@ const ui = createUi({
   disableSync() {
     syncToken = null
     storeSyncToken(localStorage, null)
+    markSeen(0)
     ui.sync(null)
     ui.status('Cloud sync is off. The cloud copy stays where it is.')
   },
@@ -304,9 +327,13 @@ startLoop({
   },
 })
 
-// Saving on the way out means a closed tab is paid as offline time.
+// Saving on the way out means a closed tab is paid as offline time. Coming back
+// asks the cloud what the other devices did meanwhile.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) return
+  if (!document.hidden) {
+    void pullCloud()
+    return
+  }
   saveGame(state, localStorage, Date.now())
   void pushCloud(true)
 })
@@ -318,5 +345,5 @@ window.addEventListener('pagehide', () => {
 
 refreshPanels()
 ui.sync(syncToken)
-if (welcomeBack) ui.welcome(welcomeBack.seconds, welcomeBack.goats)
+if (welcomeBack) ui.welcome(welcomeBack)
 void pullCloud()

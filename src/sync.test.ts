@@ -3,7 +3,7 @@ import { lastSavedOf, onRequestGet, onRequestPut } from '../functions/api/save/[
 import type { Context } from '../functions/api/save/[token]'
 import { encodeSave } from './game/save'
 import { createInitialState } from './game/state'
-import { isSyncToken, newerSave, pullSave, pushSave } from './sync'
+import { isSyncToken, pullSave, pushSave } from './sync'
 
 const TOKEN = '123e4567-e89b-12d3-a456-426614174000'
 
@@ -21,9 +21,10 @@ function fakeStore() {
   }
 }
 
-function ctx(store: ReturnType<typeof fakeStore>, token: string, body?: string): Context {
+function ctx(store: ReturnType<typeof fakeStore>, token: string, body?: string, base?: number): Context {
+  const headers = base === undefined ? undefined : { 'x-base-saved': String(base) }
   return {
-    request: new Request('https://goat.test/api/save/x', body === undefined ? undefined : { method: 'PUT', body }),
+    request: new Request('https://goat.test/api/save/x', body === undefined ? undefined : { method: 'PUT', body, headers }),
     env: { SAVES: store },
     params: { token },
   }
@@ -48,13 +49,28 @@ describe('save endpoint', () => {
     expect((await onRequestGet(ctx(fakeStore(), TOKEN))).status).toBe(404)
   })
 
-  test('refuses a stale write and returns the newer save', async () => {
+  test('refuses a write from a device that has not seen the stored save', async () => {
     const store = fakeStore()
-    await onRequestPut(ctx(store, TOKEN, saveAt(200)))
-    const res = await onRequestPut(ctx(store, TOKEN, saveAt(100)))
+    await onRequestPut(ctx(store, TOKEN, saveAt(200), 0))
+    // Another device last saw the cloud at 100, so its save is newer only by its own clock.
+    const res = await onRequestPut(ctx(store, TOKEN, saveAt(300), 100))
     expect(res.status).toBe(409)
     expect(await res.text()).toBe(saveAt(200))
     expect(store.map.get(TOKEN)!.metadata.lastSaved).toBe(200)
+  })
+
+  test('accepts a write from a device that has seen the stored save', async () => {
+    const store = fakeStore()
+    await onRequestPut(ctx(store, TOKEN, saveAt(200), 0))
+    expect((await onRequestPut(ctx(store, TOKEN, saveAt(300), 200))).status).toBe(204)
+    expect(store.map.get(TOKEN)!.metadata.lastSaved).toBe(300)
+  })
+
+  test('falls back to comparing lastSaved when no base is sent', async () => {
+    const store = fakeStore()
+    await onRequestPut(ctx(store, TOKEN, saveAt(200)))
+    expect((await onRequestPut(ctx(store, TOKEN, saveAt(100)))).status).toBe(409)
+    expect((await onRequestPut(ctx(store, TOKEN, saveAt(300)))).status).toBe(204)
   })
 
   test('rejects malformed tokens and bodies before touching storage', async () => {
@@ -78,17 +94,6 @@ describe('client helpers', () => {
     expect(isSyncToken('abc')).toBe(false)
   })
 
-  test('prefers whichever save is newer, tolerating a missing side', () => {
-    const older = createInitialState(0)
-    older.lastSaved = 1
-    const newer = createInitialState(0)
-    newer.lastSaved = 2
-    expect(newerSave(older, newer)).toBe(newer)
-    expect(newerSave(newer, older)).toBe(newer)
-    expect(newerSave(null, newer)).toBe(newer)
-    expect(newerSave(older, null)).toBe(older)
-  })
-
   test('pull and push map responses to results', async () => {
     const ok: typeof fetch = async () => new Response('code', { status: 200 })
     const stale: typeof fetch = async () => new Response('newer', { status: 409 })
@@ -97,8 +102,18 @@ describe('client helpers', () => {
     }
     expect(await pullSave(TOKEN, ok)).toBe('code')
     expect(await pullSave(TOKEN, down)).toBeNull()
-    expect(await pushSave(TOKEN, 'x', false, async () => new Response(null, { status: 204 }))).toEqual({ status: 'saved' })
-    expect(await pushSave(TOKEN, 'x', false, stale)).toEqual({ status: 'stale', code: 'newer' })
-    expect(await pushSave(TOKEN, 'x', false, down)).toEqual({ status: 'failed' })
+    expect(await pushSave(TOKEN, 'x', 0, false, async () => new Response(null, { status: 204 }))).toEqual({ status: 'saved' })
+    expect(await pushSave(TOKEN, 'x', 0, false, stale)).toEqual({ status: 'stale', code: 'newer' })
+    expect(await pushSave(TOKEN, 'x', 0, false, down)).toEqual({ status: 'failed' })
+  })
+
+  test('push tells the server which cloud save it last saw', async () => {
+    let seen: string | null = null
+    const spy: typeof fetch = async (_url, init) => {
+      seen = new Headers(init?.headers).get('x-base-saved')
+      return new Response(null, { status: 204 })
+    }
+    await pushSave(TOKEN, 'x', 4200, false, spy)
+    expect(seen).toBe('4200')
   })
 })
