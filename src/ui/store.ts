@@ -80,7 +80,8 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
     const price = priceOf(def, state)
     const count = handlers.amount()
     const line = stats.byBuilding[def.id]
-    const perUnit = owned > 0 ? line / owned : def.baseCps
+    // Same multipliers whether owned or not, so a Frenzy does not flatter only what you already have.
+    const perUnit = stats.perUnit[def.id]
     const lines: string[] = []
 
     if (owned > 0) {
@@ -102,7 +103,7 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
     if (gilds > 0) lines.push(`${gilds} gild${gilds === 1 ? '' : 's'}: +${gilds * stats.gildBonus * 100}% output`)
 
     // Building tiers double the click bonus along with production.
-    const perClick = def.baseClick ? def.baseClick * (owned > 0 ? perUnit / def.baseCps : 1) : 0
+    const perClick = def.baseClick ? def.baseClick * (perUnit / def.baseCps) : 0
     const clickNote = perClick > 0 ? ` and adds ${formatRate(perClick)} to every pet` : ''
 
     return {

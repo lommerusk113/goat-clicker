@@ -192,6 +192,8 @@ export interface Stats {
   perClick: number
   /** Output of each building line, buffs included. */
   byBuilding: Record<BuildingId, number>
+  /** What one more unit of each building would add, on the same footing as byBuilding. */
+  perUnit: Record<BuildingId, number>
   globalMult: number
   /** Extra output each gild is granting, as a fraction. */
   gildBonus: number

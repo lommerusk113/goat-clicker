@@ -175,10 +175,12 @@ export function computeStats(state: GameState): Stats {
     BuildingId,
     number
   >
+  const perUnit = { ...byBuilding }
   const idle = idleMult(state, m)
   let gps = 0
   for (const b of BUILDINGS) {
-    const line = state.buildings[b.id] * b.baseCps * m.building[b.id] * m.global * idle * gpsBuff
+    perUnit[b.id] = b.baseCps * m.building[b.id] * m.global * idle * gpsBuff
+    const line = state.buildings[b.id] * perUnit[b.id]
     byBuilding[b.id] = line
     gps += line
   }
@@ -188,6 +190,7 @@ export function computeStats(state: GameState): Stats {
     gpsBase: gps / gpsBuff,
     perClick: goatsPerClick(state, m),
     byBuilding,
+    perUnit,
     globalMult: m.global,
     gildBonus: m.gildBonus,
     buildingsOwned: totalBuildings(state),
