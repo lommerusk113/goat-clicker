@@ -76,6 +76,13 @@ describe('rollGolden', () => {
     expect(reward.buff).toMatchObject({ kind: 'clickMult', factor: 777, remaining: 13 })
   })
 
+  test('lifetime upgrades stretch the frenzies too', () => {
+    const s = richFarm()
+    s.upgrades.push('golden-prints')
+    expect(rollGolden(s, fakeRng(0.3)).buff).toMatchObject({ remaining: 154, duration: 154 })
+    expect(rollGolden(s, fakeRng(0.01)).buff).toMatchObject({ remaining: 26, duration: 26 })
+  })
+
   test('power upgrades scale the payout', () => {
     const s = richFarm()
     s.upgrades = ['golden-bell']

@@ -250,7 +250,7 @@ const GOLDEN_UPGRADES: UpgradeDef[] = [
     name: 'Gilded Hoofprints',
     icon: '✨',
     cost: 7_777_777_777,
-    desc: 'Golden goats stay twice as long.',
+    desc: 'Golden goats linger twice as long, and their Frenzies last twice as long.',
     blurb: 'A trail of them, leading somewhere expensive.',
     kind: 'golden',
     effect: { type: 'goldenLife', factor: 2 },

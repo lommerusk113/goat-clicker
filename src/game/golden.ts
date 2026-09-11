@@ -53,8 +53,8 @@ export function rollGolden(state: GameState, rng: () => number = Math.random): G
         icon: '🔥',
         kind: 'gpsMult',
         factor: 7,
-        remaining: 77,
-        duration: 77,
+        remaining: 77 * m.goldenLife,
+        duration: 77 * m.goldenLife,
       },
     }
   }
@@ -71,8 +71,8 @@ export function rollGolden(state: GameState, rng: () => number = Math.random): G
         icon: '✋',
         kind: 'clickMult',
         factor: BALANCE.goldenClickFrenzyMult,
-        remaining: 13,
-        duration: 13,
+        remaining: 13 * m.goldenLife,
+        duration: 13 * m.goldenLife,
       },
     }
   }

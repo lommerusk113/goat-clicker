@@ -42,7 +42,7 @@ export type Effect =
   | { type: 'globalPerAchievement'; percent: number }
   /** Multiplies how often golden goats wander in. */
   | { type: 'goldenFreq'; factor: number }
-  /** Multiplies how long golden goats stay. */
+  /** Multiplies how long golden goats stay on screen and how long their buffs run. */
   | { type: 'goldenLife'; factor: number }
   /** Multiplies golden goat rewards. */
   | { type: 'goldenPower'; factor: number }
