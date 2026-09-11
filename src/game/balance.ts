@@ -45,8 +45,14 @@ export const BALANCE = {
   gildRerollCost: 1,
   /** Occult points to place one gild exactly where you want it. */
   gildMoveCost: 20,
-  /** A gild is handed out for every this many occult points ever earned, so ascending often earns no extra gilds. */
-  gildPerOccult: 5,
+  /**
+   * The first gild comes at this many occult points ever earned, and another
+   * each time that total grows by `gildGrowth`. Points are a root of goats and
+   * would hand out hundreds of gilds per five; thresholds that grow keep the
+   * count at the log of points, about seventeen by three thousand.
+   */
+  gildFirstOccult: 5,
+  gildGrowth: 1.5,
   /**
    * Seconds without a pet before the herd counts as idle. Two minutes, as in
    * Clicker Heroes: long enough that a clicker never drifts into it by accident,

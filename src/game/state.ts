@@ -140,10 +140,16 @@ export function goatsForNextOccult(state: GameState): number {
 }
 
 
+/** Gilds a player who has earned `occultEarned` points all told is owed. Thresholds grow by BALANCE.gildGrowth. */
+export function gildsFor(occultEarned: number): number {
+  if (occultEarned < BALANCE.gildFirstOccult) return 0
+  return Math.floor(Math.log(occultEarned / BALANCE.gildFirstOccult) / Math.log(BALANCE.gildGrowth) + 1e-9) + 1
+}
+
 export interface Ascension {
   /** Occult points gained. Zero means nothing happened. */
   occult: number
-  /** Buildings that received a gild this ascension, one per BALANCE.gildPerOccult points crossed. */
+  /** Buildings that received a gild this ascension, one per gild threshold crossed. */
   gilded: BuildingId[]
 }
 
@@ -158,8 +164,8 @@ export function ascend(state: GameState, rng: () => number = Math.random): Ascen
 
   const owned = BUILDING_IDS.filter((id) => state.buildings[id] > 0)
   const pool = owned.length > 0 ? owned : [BUILDING_IDS[0]]
-  const before = Math.floor(state.occultEarned / BALANCE.gildPerOccult)
-  const after = Math.floor((state.occultEarned + gain) / BALANCE.gildPerOccult)
+  const before = gildsFor(state.occultEarned)
+  const after = gildsFor(state.occultEarned + gain)
   const gilded: BuildingId[] = []
   for (let i = before; i < after; i++) {
     const pick = pool[Math.floor(rng() * pool.length)]

@@ -12,6 +12,7 @@ import {
   claimAchievements,
   createInitialState,
   earn,
+  gildsFor,
   goatsForOccultLevel,
   occultLevel,
   pendingOccult,
@@ -327,17 +328,39 @@ describe('ascend', () => {
     expect(s.goats).toBe(100_000)
   })
 
-  test('hands out a gild per five points earned, on buildings owned this run', () => {
+  test('hands out gilds at the thresholds crossed, on buildings owned this run', () => {
     const s = veteran()
     s.buildings.barn = 1
-    // Ten points: two gilds. Owned: meadow, barn. A roll of 0.9 lands on the last of them.
+    // Ten points cross 5 and 7.5: two gilds. Owned: meadow, barn. A roll of 0.9 lands on the last of them.
     expect(ascend(s, () => 0.9)).toEqual({ occult: 10, gilded: ['barn', 'barn'] })
     expect(s.gilds.barn).toBe(2)
-    // One more point (11 earned) crosses no multiple of five: no gild.
+    // One more point (11 earned) crosses no threshold: no gild.
     s.totalGoats = 1e12
     s.buildings.meadow = 1
     expect(ascend(s, () => 0)).toEqual({ occult: 1, gilded: [] })
     expect(s.gilds).toMatchObject({ barn: 2, meadow: 0 })
+  })
+
+  test('gild thresholds grow by half each time', () => {
+    expect(gildsFor(0)).toBe(0)
+    expect(gildsFor(4)).toBe(0)
+    expect(gildsFor(5)).toBe(1)
+    expect(gildsFor(7)).toBe(1)
+    expect(gildsFor(8)).toBe(2)
+    expect(gildsFor(11)).toBe(2)
+    expect(gildsFor(12)).toBe(3)
+    expect(gildsFor(40)).toBe(6)
+    expect(gildsFor(3000)).toBe(16)
+  })
+
+  test('a big ascension hands out every gild it crosses', () => {
+    const s = veteran()
+    ascend(s, () => 0)
+    // 10 earned so far. Jump to 40: thresholds 11.25, 16.9, 25.3, 38 → four more.
+    s.totalGoats = goatsForOccultLevel(40) - s.lifetimeGoats
+    s.buildings.meadow = 1
+    expect(ascend(s, () => 0).gilded).toHaveLength(4)
+    expect(s.gilds.meadow).toBe(4 + 2)
   })
 })
 
