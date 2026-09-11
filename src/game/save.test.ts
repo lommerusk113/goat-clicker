@@ -142,9 +142,9 @@ describe('migrating a version 2 save to the relics', () => {
 
   test('credits points the retuned curve would otherwise claw back', () => {
     const back = decodeSave(version2Save())!
-    // 2.5e9 goats is worth nothing on the current curve, so all 21 are credit.
-    expect(occultLevel(back.lifetimeGoats + back.totalGoats)).toBe(0)
-    expect(back.occultCredit).toBe(21)
+    // 2.5e9 goats is worth two points on the current curve, so 19 are credit.
+    expect(occultLevel(back.lifetimeGoats + back.totalGoats)).toBe(2)
+    expect(back.occultCredit).toBe(19)
   })
 
   test('credits nothing to a save the current curve already covers', () => {

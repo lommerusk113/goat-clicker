@@ -243,18 +243,22 @@ describe('the idle clock', () => {
 })
 
 describe('occultLevel', () => {
-  test('gives five points per tenfold of lifetime goats past ten billion', () => {
+  test('is three times the fourth root of lifetime goats in units of ten billion', () => {
     expect(occultLevel(0)).toBe(0)
-    expect(occultLevel(1e10)).toBe(1)
+    expect(occultLevel(1e8)).toBe(0)
+    expect(occultLevel(1.3e8)).toBe(1)
+    expect(occultLevel(1e10)).toBe(3)
     expect(occultLevel(1e11)).toBe(5)
-    expect(occultLevel(1e12)).toBe(10)
-    expect(occultLevel(1e15)).toBe(25)
-    expect(occultLevel(1e20)).toBe(50)
+    expect(occultLevel(1e12)).toBe(9)
+    expect(occultLevel(1e14)).toBe(30)
+    expect(occultLevel(1e18)).toBe(300)
+    expect(occultLevel(1e22)).toBe(3000)
   })
 
   test('inverts back to the goats needed', () => {
     expect(occultLevel(goatsForOccultLevel(12))).toBe(12)
     expect(occultLevel(goatsForOccultLevel(12) * 0.999)).toBe(11)
+    expect(occultLevel(goatsForOccultLevel(3000))).toBe(3000)
   })
 })
 
@@ -262,7 +266,7 @@ describe('ascend', () => {
   function veteran() {
     const s = createInitialState(0)
     s.goats = 5e11
-    s.totalGoats = 1e12
+    s.totalGoats = 1.5e12
     s.clicks = 500
     s.buildings.meadow = 40
     s.upgrades = ['meadow-t1']
@@ -290,7 +294,7 @@ describe('ascend', () => {
     expect(s.occult).toBe(10)
     expect(s.occultEarned).toBe(10)
     expect(s.ascensions).toBe(1)
-    expect(s.lifetimeGoats).toBe(1e12)
+    expect(s.lifetimeGoats).toBe(1.5e12)
     expect(s.goats).toBe(0)
     expect(s.totalGoats).toBe(0)
     expect(s.buildings.meadow).toBe(0)
@@ -310,7 +314,7 @@ describe('ascend', () => {
     const s = veteran()
     ascend(s)
     s.totalGoats = 1e12
-    // 2e12 lifetime is level 11, and 10 of those are already banked.
+    // 2.5e12 lifetime is level 11 (3 × 250^¼ = 11.9), and 10 of those are already banked.
     expect(pendingOccult(s)).toBe(1)
     expect(ascend(s).occult).toBe(1)
     expect(s.occultEarned).toBe(11)

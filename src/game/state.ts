@@ -109,19 +109,18 @@ export function buyRelic(state: GameState, id: RelicId, count: number | 'max' = 
 }
 
 /**
- * Occult points a lifetime of `goats` is worth: so many per order of magnitude
- * past the occult unit, so a trillion is forty. Logarithmic on purpose.
- * Milestones make production nearly linear in wealth, so a run's goats grow
- * like a high power of the occult bonus; a root of that (the classic cube
- * root) runs away, a log does not.
+ * Occult points a lifetime of `goats` is worth: a root of the goats in occult
+ * units, scaled. See BALANCE.occultRoot for why a root and why the fourth.
+ * The epsilon keeps an exact inverse from landing on 11.999.
  */
 export function occultLevel(goats: number): number {
-  return Math.floor(BALANCE.occultPerDecade * Math.log10(1 + goats / BALANCE.occultUnit))
+  if (goats <= 0) return 0
+  return Math.floor(BALANCE.occultScale * (goats / BALANCE.occultUnit) ** (1 / BALANCE.occultRoot) + 1e-9)
 }
 
 /** Lifetime goats needed to be worth `level` occult points. */
 export function goatsForOccultLevel(level: number): number {
-  return BALANCE.occultUnit * (10 ** (level / BALANCE.occultPerDecade) - 1)
+  return BALANCE.occultUnit * (level / BALANCE.occultScale) ** BALANCE.occultRoot
 }
 
 /**

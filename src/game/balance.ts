@@ -20,10 +20,21 @@ export const BALANCE = {
   milestoneBigMult: 10,
   /** Extra output per gild, as a fraction. Gilds add up rather than compound. */
   gildBonus: 1,
-  /** Lifetime goats at which the occult scale starts counting. */
+  /** Lifetime goats that count as one occult unit. */
   occultUnit: 1e10,
-  /** Occult points per tenfold increase in lifetime goats. Scarce: each one is worth a lot. */
-  occultPerDecade: 5,
+  /**
+   * Occult points are `occultScale` times the `occultRoot`-th root of lifetime
+   * goats in occult units. A root rather than a log, so the count keeps
+   * climbing at a steady clip instead of each point needing half again as
+   * many goats as the last. Fourth rather than cube: the bonus is additive
+   * per point and a run's output grows like the bonus to the 2.4, so points
+   * as lifetime^(1/4) keep a run's goats a polynomial in play time, while the
+   * cube root sits on the edge of running away once relics stack on top.
+   * Scale 3 keeps the early ladder where it was: five points at 100 billion,
+   * nine at a trillion, then 300 at 1e18 and 3,000 at 1e22.
+   */
+  occultRoot: 4,
+  occultScale: 3,
   /**
    * Production bonus each unspent occult point grants, in percent. Spending a
    * point on a relic level or a gild move gives this up, so every purchase
