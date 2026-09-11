@@ -1,0 +1,54 @@
+{
+  "planPath": "docs/superpowers/plans/2026-09-11-occult-root-curve.md",
+  "tasks": [
+    {
+      "id": 1,
+      "subject": "Task 1: Root curve for occult points",
+      "status": "pending",
+      "description": "**Goal:** occultLevel returns floor(3 × (goats / 1e10)^(1/4)) and its inverse round-trips.\n\n```json:metadata\n{\"files\": [\"src/game/balance.ts\", \"src/game/state.ts\", \"src/game/state.test.ts\"], \"verifyCommand\": \"npx vitest run src/game/state.test.ts\", \"acceptanceCriteria\": [\"occultLevel(1e11) === 5, occultLevel(1e12) === 9, occultLevel(1e22) === 3000\", \"occultLevel(goatsForOccultLevel(n)) === n for 12 and 3000\", \"no occultPerDecade left in src\", \"npx vitest run passes\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Geometric relic pricing",
+      "status": "pending",
+      "blockedBy": [1],
+      "description": "**Goal:** Each relic level costs ceil(costStep × costRatio^level), ratio 2 by default, Hourglass 3.5.\n\n```json:metadata\n{\"files\": [\"src/game/types.ts\", \"src/game/relics.ts\", \"src/game/relics.test.ts\", \"src/game/state.test.ts\", \"README.md\"], \"verifyCommand\": \"npx vitest run src/game/relics.test.ts src/game/state.test.ts\", \"acceptanceCriteria\": [\"relicCost(candle, 9) === 512, relicCost(hourglass, 1) === 4, relicCost(hourglass, 2) === 13\", \"relicAffordable(candle, 0, p) === floor(log2(p + 1))\", \"Hourglass/Candle reach ratio within 0.7–1.7 up to 1000 points and below 3 at 5000\", \"npx vitest run passes\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Gilds at geometric thresholds",
+      "status": "pending",
+      "blockedBy": [1],
+      "description": "**Goal:** A gild at 5 points earned, then one each time points earned grow by half.\n\n```json:metadata\n{\"files\": [\"src/game/balance.ts\", \"src/game/state.ts\", \"src/game/state.test.ts\", \"src/ui/ascend.ts\", \"index.html\"], \"verifyCommand\": \"npx vitest run src/game/state.test.ts\", \"acceptanceCriteria\": [\"gildsFor(4)=0, (5)=1, (7)=1, (8)=2, (40)=6, (3000)=16\", \"ascending 0→10 earned hands out 2 gilds; 10→11 none; 10→40 four\", \"no gildPerOccult left in src or index.html\", \"npx vitest run passes\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: Achievements for the new point scale",
+      "status": "pending",
+      "blockedBy": [1],
+      "description": "**Goal:** Add occult-500 and occult-2000 achievements.\n\n```json:metadata\n{\"files\": [\"src/game/achievements.ts\", \"src/game/achievements.test.ts\"], \"verifyCommand\": \"npx vitest run\", \"acceptanceCriteria\": [\"ACHIEVEMENTS contains occult-500 and occult-2000 checking occultEarned\", \"npx vitest run passes\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: Save migration to version 4",
+      "status": "pending",
+      "blockedBy": [1, 2, 3],
+      "description": "**Goal:** Version 3 saves load with occultCredit recomputed on the root curve; version 4 saves keep stored credit.\n\n```json:metadata\n{\"files\": [\"src/game/state.ts\", \"src/game/save.ts\", \"src/game/save.test.ts\"], \"verifyCommand\": \"npx vitest run src/game/save.test.ts\", \"acceptanceCriteria\": [\"SAVE_VERSION === 4\", \"v3 save 1e12 lifetime / 10 earned → credit 1, pending 0\", \"v3 save 1e15 lifetime / 25 earned → credit 0, pending 28\", \"v4 save keeps stored credit\", \"v2 saves still respec\", \"npx vitest run passes\"]}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: Simulator gate and tuning",
+      "status": "pending",
+      "blockedBy": [2, 3, 4, 5],
+      "description": "**Goal:** Sim shows steady late-game points, no runaway, idle and petting within 3×; tune knobs otherwise.\n\n```json:metadata\n{\"files\": [\"src/game/balance.ts\", \"src/game/relics.ts\", \"src/game/state.test.ts\", \"src/game/save.test.ts\"], \"verifyCommand\": \"VITE_SIM=1 npx vitest run src/game/sim.test.ts 2>&1 | grep -E '^===|END|200h|ascensions|RUNAWAY'\", \"acceptanceCriteria\": [\"no RUNAWAY in any scenario\", \"smart spender: points earned 200–400h ≥ points earned 0–200h\", \"smart spender: ≥3 ascensions after 200h\", \"smart spender: first ascension 6–24h, elder 40–105h\", \"idle-smart END lifetime within 3× of smart spender\", \"tests pass after tuning\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 7: README pacing text",
+      "status": "pending",
+      "blockedBy": [6],
+      "description": "**Goal:** README describes the root curve, the gild rule and the measured pacing.\n\n```json:metadata\n{\"files\": [\"README.md\"], \"verifyCommand\": \"grep -n 'tenfold\\\\|every five occult\\\\|cube-root' README.md\", \"acceptanceCriteria\": [\"no stale wording left\", \"Ascending paragraph quotes hours measured in Task 6\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-09-11T00:00:00Z"
+}
