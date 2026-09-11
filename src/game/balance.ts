@@ -25,16 +25,19 @@ export const BALANCE = {
   /**
    * Occult points are `occultScale` times the `occultRoot`-th root of lifetime
    * goats in occult units. A root rather than a log, so the count keeps
-   * climbing at a steady clip instead of each point needing half again as
-   * many goats as the last. Fourth rather than cube: the bonus is additive
-   * per point and a run's output grows like the bonus to the 2.4, so points
-   * as lifetime^(1/4) keep a run's goats a polynomial in play time, while the
-   * cube root sits on the edge of running away once relics stack on top.
-   * Scale 3 keeps the early ladder where it was: five points at 100 billion,
-   * nine at a trillion, then 300 at 1e18 and 3,000 at 1e22.
+   * climbing instead of each point needing half again as many goats as the
+   * last. Sixth, not Cookie Clicker's cube: the bonus is additive per point
+   * and a run's output grows like a high power of the bonus once milestones
+   * kick in, so a relic-spending player on the fourth root ran away in the
+   * simulator at seventy hours (and the idle build overflowed to Infinity).
+   * The sixth is the first root at which every build stays finite; the price
+   * is that points still slow down late, polynomially rather than
+   * geometrically. Scale 4 keeps the early ladder where it was: five points
+   * at 100 billion, eight at a trillion, 27 at a quadrillion, then 86 at
+   * 1e18 and 400 at 1e22.
    */
-  occultRoot: 4,
-  occultScale: 3,
+  occultRoot: 6,
+  occultScale: 4,
   /**
    * Production bonus each unspent occult point grants, in percent. Spending a
    * point on a relic level or a gild move gives this up, so every purchase

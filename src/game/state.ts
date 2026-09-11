@@ -110,7 +110,7 @@ export function buyRelic(state: GameState, id: RelicId, count: number | 'max' = 
 
 /**
  * Occult points a lifetime of `goats` is worth: a root of the goats in occult
- * units, scaled. See BALANCE.occultRoot for why a root and why the fourth.
+ * units, scaled. See BALANCE.occultRoot for why a root and why the sixth.
  * The epsilon keeps an exact inverse from landing on 11.999.
  */
 export function occultLevel(goats: number): number {

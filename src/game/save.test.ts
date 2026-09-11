@@ -142,9 +142,9 @@ describe('migrating a version 2 save to the relics', () => {
 
   test('credits points the retuned curve would otherwise claw back', () => {
     const back = decodeSave(version2Save())!
-    // 2.5e9 goats is worth two points on the current curve, so 19 are credit.
-    expect(occultLevel(back.lifetimeGoats + back.totalGoats)).toBe(2)
-    expect(back.occultCredit).toBe(19)
+    // 2.5e9 goats is worth three points on the current curve, so 18 are credit.
+    expect(occultLevel(back.lifetimeGoats + back.totalGoats)).toBe(3)
+    expect(back.occultCredit).toBe(18)
   })
 
   test('credits nothing to a save the current curve already covers', () => {
@@ -221,18 +221,19 @@ function version3Save(over: Record<string, unknown> = {}): string {
 }
 
 describe('migrating a version 3 save to the root curve', () => {
-  test('credits the point the new curve is short around a trillion', () => {
+  test('credits the points the new curve is short around a trillion', () => {
     const back = decodeSave(version3Save())!
-    // 1e12 was ten points on the log curve and is nine on the root.
-    expect(occultLevel(1e12)).toBe(9)
-    expect(back.occultCredit).toBe(1)
+    // 1e12 was ten points on the log curve and is eight on the root.
+    expect(occultLevel(1e12)).toBe(8)
+    expect(back.occultCredit).toBe(2)
     expect(pendingOccult(back)).toBe(0)
   })
 
   test('credits nothing where the new curve already pays more', () => {
-    const back = decodeSave(version3Save({ lifetimeGoats: 1e15, occultEarned: 25 }))!
+    // 1e18 was forty points on the log curve and is eighty-six on the root.
+    const back = decodeSave(version3Save({ lifetimeGoats: 1e18, occultEarned: 40 }))!
     expect(back.occultCredit).toBe(0)
-    expect(pendingOccult(back)).toBe(53 - 25)
+    expect(pendingOccult(back)).toBe(86 - 40)
   })
 
   test('keeps relic levels and unspent points as they are', () => {
