@@ -9,7 +9,7 @@ import {
   saveGame,
 } from './save'
 import { BALANCE } from './balance'
-import { createInitialState, occultLevel } from './state'
+import { createInitialState, occultLevel, pendingOccult } from './state'
 
 function fakeStorage(): Storage {
   const map = new Map<string, string>()
@@ -199,7 +199,57 @@ describe('migrating a version 2 save to the relics', () => {
     const back = decodeSave(current)!
     expect(back.occult).toBe(2)
     expect(back.occultLevels.candle).toBe(4)
-    expect(back.occultCredit).toBe(5)
+    // A version 3 save is retuned onto the root curve: one goat is worth nothing, so all 30 points become credit.
+    expect(back.occultCredit).toBe(30)
+  })
+})
+
+function version3Save(over: Record<string, unknown> = {}): string {
+  return btoa(
+    JSON.stringify({
+      version: 3,
+      goats: 0,
+      totalGoats: 0,
+      lifetimeGoats: 1e12,
+      occult: 4,
+      occultEarned: 10,
+      occultCredit: 0,
+      occultLevels: { candle: 3 },
+      ...over,
+    }),
+  )
+}
+
+describe('migrating a version 3 save to the root curve', () => {
+  test('credits the point the new curve is short around a trillion', () => {
+    const back = decodeSave(version3Save())!
+    // 1e12 was ten points on the log curve and is nine on the root.
+    expect(occultLevel(1e12)).toBe(9)
+    expect(back.occultCredit).toBe(1)
+    expect(pendingOccult(back)).toBe(0)
+  })
+
+  test('credits nothing where the new curve already pays more', () => {
+    const back = decodeSave(version3Save({ lifetimeGoats: 1e15, occultEarned: 25 }))!
+    expect(back.occultCredit).toBe(0)
+    expect(pendingOccult(back)).toBe(53 - 25)
+  })
+
+  test('keeps relic levels and unspent points as they are', () => {
+    const back = decodeSave(version3Save())!
+    expect(back.occult).toBe(4)
+    expect(back.occultLevels.candle).toBe(3)
+  })
+
+  test('loads as the current version', () => {
+    expect(decodeSave(version3Save())!.version).toBe(4)
+  })
+})
+
+describe('a version 4 save', () => {
+  test('keeps its stored credit', () => {
+    const current = btoa(JSON.stringify({ version: 4, goats: 1, lifetimeGoats: 1e12, occultEarned: 30, occultCredit: 5 }))
+    expect(decodeSave(current)!.occultCredit).toBe(5)
   })
 })
 

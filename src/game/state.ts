@@ -6,7 +6,7 @@ import { RELIC_BY_ID, emptyRelics, relicAffordable, relicBulkCost } from './reli
 import { UPGRADE_BY_ID } from './upgrades'
 import type { AchievementDef, Buff, BuildingId, GameState, RelicId } from './types'
 
-export const SAVE_VERSION = 3
+export const SAVE_VERSION = 4
 
 
 export function emptyBuildings(): Record<BuildingId, number> {

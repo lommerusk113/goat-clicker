@@ -6,8 +6,10 @@ import { UPGRADE_BY_ID } from './upgrades'
 import { SAVE_VERSION, createInitialState, occultLevel } from './state'
 import type { Buff, BuffKind, GameState, RelicId } from './types'
 
-/** The save this migration code understands without help. Older ones get patched up. */
+/** Saves older than this spent their points on occult upgrades that became relics. */
 const RELIC_VERSION = 3
+/** Saves older than this counted their points on the log curve rather than the root. */
+const CURVE_VERSION = 4
 
 /**
  * Achievements renamed when the occult scale was retuned. They are not all
@@ -157,10 +159,12 @@ function migrate(raw: Record<string, unknown>): GameState {
   const respec = version < RELIC_VERSION
   const occult = respec ? occultEarned : Math.max(0, Math.floor(num(raw.occult, 0)))
 
-  // Points earned on the old fifteen-per-decade curve are worth far fewer on
-  // this one, which would leave a grandfathered save owing back the difference
-  // before its next point. The credit writes that difference off, once.
-  const occultCredit = respec
+  // Points counted on an older curve can be more than the current one says
+  // the goats are worth, which would leave a grandfathered save owing back the
+  // difference before its next point. The credit writes that difference off,
+  // once. Relic levels bought at the old prices are kept: nobody is short.
+  const retuned = version < CURVE_VERSION
+  const occultCredit = retuned
     ? Math.max(0, occultEarned - occultLevel(lifetimeGoats + totalGoats))
     : Math.max(0, Math.floor(num(raw.occultCredit, 0)))
 
