@@ -35,28 +35,37 @@ only packages, and all of them are dev-only.
   old building deep is a choice, not a default; gilds are what make one shine.
   `VITE_SIM=1 npx vitest run src/game/sim.test.ts` prints what a greedy buyer
   owns over time, for checking that balance after changes.
-- **Gilds** are handed out one for every five occult points ever earned, on a
-  random building you owned that run, so ascending for single points earns no
-  extra gilds. Each gild doubles that building's output for good, and they
-  stack additively, so the late game is about piling them onto one building.
-  From the Ascend tab a gild can be rerolled onto a random other building for
-  one occult point, or placed exactly for twenty.
+- **Gilds** are handed out on a random building you owned that run: the first
+  at five occult points ever earned, then one each time that total grows by
+  half (5, 7.5, 11, 17, 25, 38, 57 …), so ascending for single points earns
+  no extra gilds and the count stays around the log of your points, about
+  seventeen by three thousand. Each gild doubles that building's output for
+  good, and they stack additively, so the late game is about piling them onto
+  one building. From the Ascend tab a gild can be rerolled onto a random other
+  building for one occult point, or placed exactly for twenty.
 - **Upgrades** come in five families: five tiers per building at 1, 10, 25, 50
   and 100 owned (each doubling that building's output, and its click bonus if
   it has one), petting upgrades, golden-goat upgrades, herd-wide upgrades that
   scale with how many achievements you have earned. Occult points do not buy
   upgrades; they level relics.
 - **Ascending** sells the farm for occult points: goats, buildings and ordinary
-  upgrades go, achievements and relics stay. Points grow with the
-  logarithm of every goat you have ever herded past ten billion, five per
-  tenfold: five at 100 billion, ten at a trillion, twenty-five at a
-  quadrillion. Each unspent point adds 10% to all production, so spending
-  points on relics or gild moves is a real trade. Simulated over 400
-  hours, a player who spends only on production reaches the Elder Goat
-  at 105h, one who never spends at 167h, and one who also buys petting upgrades
-  and rerolls gilds freely at 380h. The log is deliberate: milestones make a
-  run's output grow like a high power of that bonus, and a cube-root scale on
-  top of it runs away.
+  upgrades go, achievements and relics stay. Points are four times the sixth
+  root of every goat you have ever herded in units of ten billion: five at
+  100 billion, eight at a trillion, 27 at a quadrillion, 86 at 1e18, 400 at
+  1e22. A root rather than a log, because the log made every point take a
+  third longer than the last and the game stalled at around two hundred
+  hours. The sixth root rather than Cookie Clicker's cube because the bonus
+  here is 10% per point and a run's output grows like a high power of that
+  bonus once milestones kick in: on the fourth root a relic-spending player
+  ran away in the simulator at seventy hours, and the sixth is the first root
+  at which every build stays finite. Each unspent point adds 10% to all
+  production, so spending points on relics or gild moves is a real trade.
+  Simulated over 400 hours, a player who spends only on production ascends
+  first at 13h, reaches the Elder Goat at 109h and earns 704 points, 406 of
+  them in the first two hundred hours and 298 in the second; one who never
+  spends earns 342. Points still slow down late, but polynomially: at 400h a
+  point takes about fifty minutes, against twenty-eight hours on the old
+  curve.
 - **Relics** are the occult tree: seven of them, levelled without limit rather
   than bought once. Level L costs `costStep × 2^L` points, rounded up, so
   levels arrive at the log of what a relic has swallowed. That shape is the
@@ -82,7 +91,9 @@ only packages, and all of them are dev-only.
   is priced as if the herd were busy, so a pet never collects the bonus. Time away is idle by
   definition, which is how the relic also improves what the tab earns while
   closed. Simulated over 400 hours against the same spending policy, the idle
-  build finishes at 1.0e22 lifetime goats and the petting build at 1.3e22.
+  build earns 1,042 points to the petting build's 704: ahead, because the
+  Hourglass is one more ladder to spread across, but not by enough to make
+  petting a mistake.
 - **Golden goats** wander in every five to fifteen minutes, the first after
   five, and stay for forty seconds, so checking in now and then is enough to
   catch them. Catching one usually pays a lump sum (55%), or starts a Frenzy

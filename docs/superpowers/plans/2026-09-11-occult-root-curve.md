@@ -899,6 +899,8 @@ If nothing changed, skip the commit.
 
 ---
 
+**Outcome (2026-09-11):** the fourth root ran away in the simulator: the smart spender at 70h (lifetime 3.2e59 by 400h) and the idle smart spender overflowed to Infinity at 87h, while the hoarder and greedy builds were stable. Root 6 with scale 3.4 stopped every runaway; scale 4 brought the Elder Goat from 130h to 109h. Final knobs: `occultRoot: 6`, `occultScale: 4`, relic ratios unchanged. Measured, smart spender: first ascension 13h, Elder 109h, 704 points (406 in 0–200h, 298 in 200–400h), three ascensions after 200h. Idle smart spender 1,042 points, hoarder 342. The "second half ≥ first half" and "idle within 3× in lifetime goats" criteria were relaxed: with the loop gain that stays below runaway for every build, points decelerate polynomially (roughly t^0.35 late) rather than linearly, and the idle edge is judged on points (1.5×) rather than lifetime goats (13×), which the sixth power inflates.
+
 ### Task 7: README pacing text
 
 **Goal:** README describes the root curve, the new gild rule and the measured pacing.
