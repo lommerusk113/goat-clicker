@@ -435,6 +435,20 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     desc: 'Earn 150 occult points, all told.',
     earned: (s) => s.occultEarned >= 150,
   },
+  {
+    id: 'occult-500',
+    name: 'Warlock of the High Pasture',
+    icon: '🧙',
+    desc: 'Earn 500 occult points, all told.',
+    earned: (s) => s.occultEarned >= 500,
+  },
+  {
+    id: 'occult-2000',
+    name: 'The Herd That Was Promised',
+    icon: '🌑',
+    desc: 'Earn 2,000 occult points, all told.',
+    earned: (s) => s.occultEarned >= 2000,
+  },
 
   // Gilds
   {
