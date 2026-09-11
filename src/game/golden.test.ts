@@ -66,7 +66,7 @@ describe('rollGolden', () => {
   test('frenzy multiplies production for a while', () => {
     const reward = rollGolden(richFarm(), fakeRng(0.3))
     expect(reward.kind).toBe('frenzy')
-    expect(reward.buff).toMatchObject({ kind: 'gpsMult', factor: 7, remaining: 77 })
+    expect(reward.buff).toMatchObject({ kind: 'gpsMult', factor: 7, remaining: 60 })
     expect(reward.goats).toBe(0)
   })
 
@@ -79,7 +79,7 @@ describe('rollGolden', () => {
   test('lifetime upgrades stretch the frenzies too', () => {
     const s = richFarm()
     s.upgrades.push('golden-prints')
-    expect(rollGolden(s, fakeRng(0.3)).buff).toMatchObject({ remaining: 154, duration: 154 })
+    expect(rollGolden(s, fakeRng(0.3)).buff).toMatchObject({ remaining: 120, duration: 120 })
     expect(rollGolden(s, fakeRng(0.01)).buff).toMatchObject({ remaining: 26, duration: 26 })
   })
 
@@ -94,6 +94,6 @@ describe('rollGolden', () => {
     const s = richFarm()
     s.upgrades = ['golden-bell']
     const reward = rollGolden(s, fakeRng(0.3))
-    expect(reward.buff!.remaining).toBe(77)
+    expect(reward.buff!.remaining).toBe(60)
   })
 })

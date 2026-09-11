@@ -8,7 +8,10 @@ export const BALANCE = {
    * pacing knob: with ×4 milestones every 25 units, production is a power of
    * wealth with exponent ln4/ln(growth^25). At 7% that is 0.82 and a run's
    * output grows like time^5.5, which burns through content in hours. At 10%
-   * it is 0.58 and time^2.4, which lasts weeks.
+   * it is 0.58 and time^2.4, which lasts weeks. 9% was tried to speed up the
+   * flat stretch after the first ascension and sent the idle relic-spender into
+   * exponential growth (17,000 points by 400h) even with milestones spaced to
+   * match; the occult bonus per point is the safe knob for that, not this one.
    */
   costGrowth: 1.1,
   /** From this many owned, every `milestoneStep` units multiplies output by `milestoneMult`... */
@@ -32,18 +35,18 @@ export const BALANCE = {
    * simulator at seventy hours (and the idle build overflowed to Infinity).
    * The sixth is the first root at which every build stays finite; the price
    * is that points still slow down late, polynomially rather than
-   * geometrically. Scale 4 keeps the early ladder where it was: five points
-   * at 100 billion, eight at a trillion, 27 at a quadrillion, then 86 at
-   * 1e18 and 400 at 1e22.
+   * geometrically. Scale 4.5 tracks the old log curve within a point up to
+   * 1e14 and pulls ahead from there: six points at 100 billion, nine at a
+   * trillion, 30 at a quadrillion, then 96 at 1e18 and 450 at 1e22.
    */
   occultRoot: 6,
-  occultScale: 4,
+  occultScale: 4.5,
   /**
    * Production bonus each unspent occult point grants, in percent. Spending a
    * point on a relic level or a gild move gives this up, so every purchase
    * has to beat it.
    */
-  occultBasePercent: 10,
+  occultBasePercent: 15,
   /** Occult points to throw one gild onto a random other building. */
   gildRerollCost: 1,
   /** Occult points to place one gild exactly where you want it. */
@@ -69,10 +72,14 @@ export const BALANCE = {
   /**
    * Seconds between golden goats, before upgrades: Cookie Clicker's window.
    * Simulated at 150-400s with a 15% Petting Frenzy, goldens paid four times
-   * the whole economy in the first hour; at these numbers they pay about 7%.
+   * the whole economy in the first hour. At these numbers and a 5% Petting
+   * Frenzy they pay about 15% to a player who catches a quarter of them, and
+   * roughly half again as much income to one who catches them all: attention
+   * is meant to be rewarded. The Frenzy is 60s rather than 77s so doubling the
+   * rate did not double the idle payout along with it.
    */
-  goldenMinDelay: 300,
-  goldenMaxDelay: 900,
+  goldenMinDelay: 150,
+  goldenMaxDelay: 450,
   /** Seconds a golden goat stays on screen, before upgrades. Long, so idling is fine. */
   goldenLifetime: 40,
   /** Odds of each golden goat outcome; whatever is left over is Lucky. */

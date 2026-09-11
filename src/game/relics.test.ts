@@ -68,7 +68,7 @@ describe('relic effects', () => {
   })
 
   test('the Grimoire adds to what each unspent point is worth', () => {
-    expect(multipliers(withRelic('grimoire', 5)).occultPercent).toBe(10 + 10)
+    expect(multipliers(withRelic('grimoire', 5)).occultPercent).toBe(15 + 10)
   })
 
   test('the Ashes start a run ten times richer per level', () => {

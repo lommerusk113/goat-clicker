@@ -49,23 +49,25 @@ only packages, and all of them are dev-only.
   scale with how many achievements you have earned. Occult points do not buy
   upgrades; they level relics.
 - **Ascending** sells the farm for occult points: goats, buildings and ordinary
-  upgrades go, achievements and relics stay. Points are four times the sixth
-  root of every goat you have ever herded in units of ten billion: five at
-  100 billion, eight at a trillion, 27 at a quadrillion, 86 at 1e18, 400 at
-  1e22. A root rather than a log, because the log made every point take a
+  upgrades go, achievements and relics stay. Points are four and a half times
+  the sixth root of every goat you have ever herded in units of ten billion:
+  six at 100 billion, nine at a trillion, 30 at a quadrillion, 96 at 1e18,
+  450 at 1e22. A root rather than a log, because the log made every point take a
   third longer than the last and the game stalled at around two hundred
   hours. The sixth root rather than Cookie Clicker's cube because the bonus
-  here is 10% per point and a run's output grows like a high power of that
+  here is 15% per point and a run's output grows like a high power of that
   bonus once milestones kick in: on the fourth root a relic-spending player
   ran away in the simulator at seventy hours, and the sixth is the first root
-  at which every build stays finite. Each unspent point adds 10% to all
-  production, so spending points on relics or gild moves is a real trade.
-  Simulated over 400 hours, a player who spends only on production ascends
-  first at 13h, reaches the Elder Goat at 109h and earns 704 points, 406 of
-  them in the first two hundred hours and 298 in the second; one who never
-  spends earns 342. Points still slow down late, but polynomially: at 400h a
-  point takes about fifty minutes, against twenty-eight hours on the old
-  curve.
+  at which every build stays finite. Each unspent point adds 15% to all
+  production, so spending points on relics or gild moves is a real trade;
+  it was 10%, raised to shorten the flat stretch after the first ascension
+  (cheaper buildings did the same job but sent the idle spender into
+  exponential growth, so the bonus is the knob). Simulated over 400 hours, a
+  player who spends only on production ascends first at 10h, reaches the
+  Elder Goat at 90h and earns 1,078 points, 623 of them in the first two
+  hundred hours and 455 in the second; one who never spends earns 488.
+  Points still slow down late, but polynomially: at 400h a point takes about
+  twenty minutes, against twenty-eight hours on the old curve.
 - **Relics** are the occult tree: seven of them, levelled without limit rather
   than bought once. Level L costs `costStep × 2^L` points, rounded up, so
   levels arrive at the log of what a relic has swallowed. That shape is the
@@ -73,7 +75,7 @@ only packages, and all of them are dev-only.
   like the occult bonus to the 2.4, so a compounding relic has to hand out
   levels as the log of points or the game runs away. Geometric pricing makes
   a relic's whole effect a modest power of points earned (the Candle is
-  `points^0.32`), while every unspent point still pays its flat 10%, so the
+  `points^0.32`), while every unspent point still pays its flat 15%, so the
   last levels of any ladder are a real trade.
 
   A relic's worth per point runs as `ln(factor)/ln(costRatio)`, and two relics
@@ -91,17 +93,20 @@ only packages, and all of them are dev-only.
   is priced as if the herd were busy, so a pet never collects the bonus. Time away is idle by
   definition, which is how the relic also improves what the tab earns while
   closed. Simulated over 400 hours against the same spending policy, the idle
-  build earns 1,042 points to the petting build's 704: ahead, because the
+  build earns 1,518 points to the petting build's 1,078: ahead, because the
   Hourglass is one more ladder to spread across, but not by enough to make
   petting a mistake.
-- **Golden goats** wander in every five to fifteen minutes, the first after
-  five, and stay for forty seconds, so checking in now and then is enough to
-  catch them. Catching one usually pays a lump sum (55%), or starts a Frenzy
-  (×7 production and petting, 40%), or rarely a Petting Frenzy (×777 per pet,
-  5%). The two frenzies stack. The
-  rarity matters: simulated at the old two-to-seven-minute spawn with a 15%
-  Petting Frenzy, golden goats paid out four times the whole economy in the
-  first hour.
+- **Golden goats** wander in every two and a half to seven and a half
+  minutes, the first after five, and stay for forty seconds, so checking in
+  now and then is enough to catch some. Catching one usually pays a lump sum
+  (55%), or starts a Frenzy (×7 production and petting for a minute, 40%), or
+  rarely a Petting Frenzy (×777 per pet for thirteen seconds, 5%). The two
+  frenzies stack. They used to come half as often with a 77-second Frenzy;
+  the rate was doubled and the Frenzy shortened so that a player who catches
+  them all earns about half again as much as one who ignores them while an
+  idler gains around 15%: attention is meant to pay. The odds matter too:
+  simulated at this spawn rate with a 15% Petting Frenzy, golden goats paid
+  out four times the whole economy in the first hour.
 - **Achievements** are awarded the moment their condition is met, and feed the
   herd-wide upgrades. Every building has badges at 50, 100, 200, 300, 400 and
   500 owned.

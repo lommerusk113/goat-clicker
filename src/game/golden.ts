@@ -53,8 +53,8 @@ export function rollGolden(state: GameState, rng: () => number = Math.random): G
         icon: '🔥',
         kind: 'gpsMult',
         factor: 7,
-        remaining: 77 * m.goldenLife,
-        duration: 77 * m.goldenLife,
+        remaining: 60 * m.goldenLife,
+        duration: 60 * m.goldenLife,
       },
     }
   }

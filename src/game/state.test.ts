@@ -244,17 +244,17 @@ describe('the idle clock', () => {
 })
 
 describe('occultLevel', () => {
-  test('is four times the sixth root of lifetime goats in units of ten billion', () => {
+  test('is four and a half times the sixth root of lifetime goats in units of ten billion', () => {
     expect(occultLevel(0)).toBe(0)
     expect(occultLevel(1e6)).toBe(0)
-    expect(occultLevel(2.5e6)).toBe(1)
+    expect(occultLevel(1.5e6)).toBe(1)
     expect(occultLevel(1e10)).toBe(4)
-    expect(occultLevel(1e11)).toBe(5)
-    expect(occultLevel(1e12)).toBe(8)
-    expect(occultLevel(1e13)).toBe(12)
-    expect(occultLevel(1e16)).toBe(40)
-    expect(occultLevel(1e22)).toBe(400)
-    expect(occultLevel(1e28)).toBe(4000)
+    expect(occultLevel(1e11)).toBe(6)
+    expect(occultLevel(1e12)).toBe(9)
+    expect(occultLevel(1e13)).toBe(14)
+    expect(occultLevel(1e16)).toBe(45)
+    expect(occultLevel(1e22)).toBe(450)
+    expect(occultLevel(1e28)).toBe(4500)
   })
 
   test('inverts back to the goats needed', () => {
@@ -268,7 +268,7 @@ describe('ascend', () => {
   function veteran() {
     const s = createInitialState(0)
     s.goats = 5e11
-    s.totalGoats = 3.5e12 // ten points: 4 × 350^⅙ = 10.6
+    s.totalGoats = 1.5e12 // ten points: 4.5 × 150^⅙ = 10.4
     s.clicks = 500
     s.buildings.meadow = 40
     s.upgrades = ['meadow-t1']
@@ -296,7 +296,7 @@ describe('ascend', () => {
     expect(s.occult).toBe(10)
     expect(s.occultEarned).toBe(10)
     expect(s.ascensions).toBe(1)
-    expect(s.lifetimeGoats).toBe(3.5e12)
+    expect(s.lifetimeGoats).toBe(1.5e12)
     expect(s.goats).toBe(0)
     expect(s.totalGoats).toBe(0)
     expect(s.buildings.meadow).toBe(0)
@@ -316,7 +316,7 @@ describe('ascend', () => {
     const s = veteran()
     ascend(s)
     s.totalGoats = 1e12
-    // 4.5e12 lifetime is level 11 (4 × 450^⅙ = 11.07), and 10 of those are already banked.
+    // 2.5e12 lifetime is level 11 (4.5 × 250^⅙ = 11.3), and 10 of those are already banked.
     expect(pendingOccult(s)).toBe(1)
     expect(ascend(s).occult).toBe(1)
     expect(s.occultEarned).toBe(11)

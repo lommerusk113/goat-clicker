@@ -221,19 +221,19 @@ function version3Save(over: Record<string, unknown> = {}): string {
 }
 
 describe('migrating a version 3 save to the root curve', () => {
-  test('credits the points the new curve is short around a trillion', () => {
+  test('credits the point the new curve is short around a trillion', () => {
     const back = decodeSave(version3Save())!
-    // 1e12 was ten points on the log curve and is eight on the root.
-    expect(occultLevel(1e12)).toBe(8)
-    expect(back.occultCredit).toBe(2)
+    // 1e12 was ten points on the log curve and is nine on the root.
+    expect(occultLevel(1e12)).toBe(9)
+    expect(back.occultCredit).toBe(1)
     expect(pendingOccult(back)).toBe(0)
   })
 
   test('credits nothing where the new curve already pays more', () => {
-    // 1e18 was forty points on the log curve and is eighty-six on the root.
+    // 1e18 was forty points on the log curve and is ninety-six on the root.
     const back = decodeSave(version3Save({ lifetimeGoats: 1e18, occultEarned: 40 }))!
     expect(back.occultCredit).toBe(0)
-    expect(pendingOccult(back)).toBe(86 - 40)
+    expect(pendingOccult(back)).toBe(96 - 40)
   })
 
   test('keeps relic levels and unspent points as they are', () => {
@@ -249,44 +249,44 @@ describe('migrating a version 3 save to the root curve', () => {
 
 describe('existing players on their next ascension', () => {
   test('a save the new curve rates higher is paid the difference at once', () => {
-    // 1e15 was 25 points on the log curve and is 27 on the root.
+    // 1e15 was 25 points on the log curve and is 30 on the root.
     const back = decodeSave(version3Save({ lifetimeGoats: 1e15, occultEarned: 25 }))!
-    expect(pendingOccult(back)).toBe(2)
-    // Herding on to 1e16 (40 points) pays the rest of the way up the new curve.
+    expect(pendingOccult(back)).toBe(5)
+    // Herding on to 1e16 (45 points) pays the rest of the way up the new curve.
     back.totalGoats = 1e16 - 1e15
-    expect(pendingOccult(back)).toBe(15)
-    expect(ascend(back).occult).toBe(15)
-    expect(back.occultEarned).toBe(40)
+    expect(pendingOccult(back)).toBe(20)
+    expect(ascend(back).occult).toBe(20)
+    expect(back.occultEarned).toBe(45)
   })
 
   test('a save the new curve rates lower owes nothing and earns from the next step up', () => {
-    // 1e12 was 10 points on the log curve and is 8 on the root; the two are credit.
+    // 1e12 was 10 points on the log curve and is 9 on the root; the one is credit.
     const back = decodeSave(version3Save())!
     expect(pendingOccult(back)).toBe(0)
-    back.totalGoats = goatsForOccultLevel(9) - back.lifetimeGoats
+    back.totalGoats = goatsForOccultLevel(10) - back.lifetimeGoats
     expect(pendingOccult(back)).toBe(1)
     expect(ascend(back).occult).toBe(1)
     expect(back.occultEarned).toBe(11)
     // The credit stays, so every later point is one step up the new curve.
     back.totalGoats = goatsForOccultLevel(12) - back.lifetimeGoats
-    expect(pendingOccult(back)).toBe(3)
+    expect(pendingOccult(back)).toBe(2)
   })
 
   test('a save that has never ascended is offered what its goats are worth now', () => {
-    // 8e9 goats was one point on the log curve and is three on the root.
+    // 8e9 goats was one point on the log curve and is four on the root.
     const back = decodeSave(version3Save({ lifetimeGoats: 0, totalGoats: 8e9, occult: 0, occultEarned: 0, occultLevels: {} }))!
     expect(back.occultCredit).toBe(0)
-    expect(pendingOccult(back)).toBe(3)
+    expect(pendingOccult(back)).toBe(4)
   })
 
   test('keeps gilds already held and hands out new ones on the new thresholds only', () => {
     // 53 points earned was 10 gilds on the old rule and is 6 on the new; the 10 stay.
     const back = decodeSave(version3Save({ lifetimeGoats: 1e17, occultEarned: 53, gilds: { post: 10 }, buildings: { meadow: 1 } }))!
     expect(back.gilds.post).toBe(10)
-    // 1e17 is 58 points on the root: +5, and 58 crosses the 57 threshold for one more gild.
-    expect(pendingOccult(back)).toBe(5)
+    // 1e17 is 66 points on the root: +13, and 66 crosses the 57 threshold for one more gild.
+    expect(pendingOccult(back)).toBe(13)
     const result = ascend(back, () => 0)
-    expect(result.occult).toBe(5)
+    expect(result.occult).toBe(13)
     expect(result.gilded).toEqual(['meadow'])
     expect(back.gilds).toMatchObject({ post: 10, meadow: 1 })
   })

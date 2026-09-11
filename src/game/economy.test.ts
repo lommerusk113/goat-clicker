@@ -107,13 +107,13 @@ describe('baseGoatsPerSecond', () => {
     expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 0.3 * 2 + 2 * 1)
   })
 
-  test('unspent occult points add ten percent each; spent ones do not', () => {
+  test('unspent occult points add fifteen percent each; spent ones do not', () => {
     const s = stateWith({
       buildings: { ...createInitialState(0).buildings, meadow: 10 },
       occult: 25,
       occultEarned: 100,
     })
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 3.5)
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 4.75)
   })
 
   test('the Grimoire raises the bonus per point', () => {
@@ -121,10 +121,10 @@ describe('baseGoatsPerSecond', () => {
     const s = stateWith({
       buildings: { ...base.buildings, meadow: 10 },
       occult: 25,
-      // Two levels take each point from 10% to 14%, so 25 points pay ×4.5.
+      // Two levels take each point from 15% to 19%, so 25 points pay ×5.75.
       occultLevels: { ...base.occultLevels, grimoire: 2 },
     })
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 4.5)
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(10 * 5.75)
   })
 
   test('per-achievement upgrades scale all production', () => {
