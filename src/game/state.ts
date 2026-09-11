@@ -1,7 +1,7 @@
 import { newlyEarned } from './achievements'
 import { BALANCE } from './balance'
 import { BUILDING_BY_ID, BUILDING_IDS } from './buildings'
-import { bulkCost, goatsPerClick, goatsPerSecond, multipliers } from './economy'
+import { bulkCost, goatsPerClick, goatsPerSecond, isIdle, multipliers } from './economy'
 import { RELIC_BY_ID, emptyRelics, relicAffordable, relicBulkCost } from './relics'
 import { UPGRADE_BY_ID } from './upgrades'
 import type { AchievementDef, Buff, BuildingId, GameState, RelicId } from './types'
@@ -35,6 +35,7 @@ export function createInitialState(now: number): GameState {
     goldenTimer: BALANCE.goldenFirstDelay,
     playTime: 0,
     sincePet: 0,
+    idlePets: 0,
     startedAt: now,
     lastSaved: now,
   }
@@ -48,10 +49,14 @@ export function earn(state: GameState, amount: number): void {
 
 /** One pet of the goat. Returns what it gathered. */
 export function petGoat(state: GameState): number {
-  // The clock resets before the pet is priced, so the pet itself never collects
-  // the idle bonus it just cancelled.
+  // An idle herd shrugs off a few stray pets before it counts as disturbed.
+  const grace = isIdle(state) && state.idlePets < BALANCE.idleGracePets
+  state.idlePets = grace ? state.idlePets + 1 : 0
+  // Priced as a pet on a busy herd either way, so a pet never collects the idle bonus.
+  const was = state.sincePet
   state.sincePet = 0
   const gain = goatsPerClick(state)
+  if (grace) state.sincePet = was
   earn(state, gain)
   state.goatsFromClicks += gain
   state.clicks += 1

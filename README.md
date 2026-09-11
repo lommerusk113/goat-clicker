@@ -76,8 +76,9 @@ only packages, and all of them are dev-only.
 - **Idle** means no pet for two minutes, as in Clicker Heroes, not the tab being
   closed. The Bottomless Hourglass multiplies all production while the herd is
   left alone, and nothing else does, so leaving the game running is a build
-  rather than a consolation. Petting resets the clock before the pet is priced,
-  so a pet never collects the bonus it just cancelled. Time away is idle by
+  rather than a consolation. An idle herd shrugs off five stray pets before
+  the sixth resets the clock, so a slip of the finger costs nothing. Every pet
+  is priced as if the herd were busy, so a pet never collects the bonus. Time away is idle by
   definition, which is how the relic also improves what the tab earns while
   closed. Simulated over 400 hours against the same spending policy, the idle
   build finishes at 1.0e22 lifetime goats and the petting build at 1.3e22.

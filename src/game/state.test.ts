@@ -209,9 +209,19 @@ describe('the idle clock', () => {
     expect(s.sincePet).toBe(75)
   })
 
-  test('is reset by a pet', () => {
+  test('shrugs off five stray pets, then the sixth resets it', () => {
     const s = createInitialState(0)
     produce(s, 600)
+    for (let i = 0; i < 5; i++) petGoat(s)
+    expect(s.sincePet).toBe(600)
+    petGoat(s)
+    expect(s.sincePet).toBe(0)
+    expect(s.idlePets).toBe(0)
+  })
+
+  test('is reset by a pet while busy', () => {
+    const s = createInitialState(0)
+    produce(s, 60)
     petGoat(s)
     expect(s.sincePet).toBe(0)
   })
@@ -224,7 +234,10 @@ describe('the idle clock', () => {
     produce(idle, 600)
 
     const active = { ...idle, sincePet: 0 }
-    // The click share reads production, so the two must price a pet the same.
+    // The click share reads production, so the two must price a pet the same,
+    // whether the pet is shrugged off or breaks the idle.
+    expect(petGoat(idle)).toBeCloseTo(petGoat(active))
+    idle.idlePets = 5
     expect(petGoat(idle)).toBeCloseTo(petGoat(active))
   })
 })

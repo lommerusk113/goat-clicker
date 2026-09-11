@@ -187,6 +187,7 @@ function migrate(raw: Record<string, unknown>): GameState {
     // Whoever is loading a save has not petted anything for a while, so the
     // herd is already idle — which is what makes time away pay the idle rate.
     sincePet: BALANCE.idleSeconds,
+    idlePets: 0,
     startedAt: num(raw.startedAt, 0),
     lastSaved: num(raw.lastSaved, num(raw.startedAt, 0)),
   }

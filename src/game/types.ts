@@ -180,6 +180,8 @@ export interface GameState {
   playTime: number
   /** Seconds since the goat was last petted. Past `BALANCE.idleSeconds` the herd is idle. Not saved. */
   sincePet: number
+  /** Stray pets the idle herd has shrugged off so far. Not saved. */
+  idlePets: number
   startedAt: number
   lastSaved: number
 }

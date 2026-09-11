@@ -42,6 +42,8 @@ export const BALANCE = {
    * short enough that putting the tab down pays before you have forgotten it.
    */
   idleSeconds: 120,
+  /** Pets an idle herd shrugs off before it counts as disturbed, so a stray click does not cost the bonus. */
+  idleGracePets: 5,
   /** Seconds before the first golden goat of a run. */
   goldenFirstDelay: 300,
   /**

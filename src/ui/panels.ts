@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS } from '../game/achievements'
+import { BALANCE } from '../game/balance'
 import { pendingOccult } from '../game/state'
 import { UPGRADES } from '../game/upgrades'
 import type { AchievementDef, GameState, Stats } from '../game/types'
@@ -63,6 +64,7 @@ export function createPanels(tooltip: Tooltip): Panels {
         stats.idleIn > 0 ? `in ${formatTime(Math.ceil(stats.idleIn))}` : 'yes, right now',
       ),
       ...row('Idle bonus', stats.idleMult > 1 ? `×${stats.idleMult.toFixed(2)}` : 'none yet'),
+      ...(stats.idleIn > 0 ? [] : row('Stray pets before it counts', `${BALANCE.idleGracePets - s.idlePets}`)),
 
       section('Farm'),
       ...row('Buildings owned', stats.buildingsOwned.toLocaleString('en-US')),
