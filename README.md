@@ -58,21 +58,22 @@ only packages, and all of them are dev-only.
   run's output grow like a high power of that bonus, and a cube-root scale on
   top of it runs away.
 - **Relics** are the occult tree: seven of them, levelled without limit rather
-  than bought once. Level L costs `costStep × L` points, so reaching level N
-  costs `costStep × N(N+1)/2` and levels arrive at roughly the square root of
-  what a relic has swallowed. That shape is the whole design — points are
-  already logarithmic in goats, so an exponential price against an exponential
-  effect would leave production merely linear in points and hoarding would win
-  outright. Triangular pricing also rewards spreading across ladders, since
-  every relic's first levels are the cheap ones.
+  than bought once. Level L costs `costStep × 2^L` points, rounded up, so
+  levels arrive at the log of what a relic has swallowed. That shape is the
+  whole design: points are a root of lifetime goats and a run's output grows
+  like the occult bonus to the 2.4, so a compounding relic has to hand out
+  levels as the log of points or the game runs away. Geometric pricing makes
+  a relic's whole effect a modest power of points earned (the Candle is
+  `points^0.32`), while every unspent point still pays its flat 10%, so the
+  last levels of any ladder are a real trade.
 
-  A relic's worth per point runs as `ln(factor)/sqrt(costStep)`, and two relics
+  A relic's worth per point runs as `ln(factor)/ln(costRatio)`, and two relics
   that multiply the same income have to come out level on that measure or the
   better one wins by a margin that grows with every point earned. The Hourglass
-  costs three a level rather than two for exactly that reason: at two it beat
-  the Candle by 1.6× at thirty points, 2.1× at a hundred and 15× at a thousand,
-  and idle stopped being a choice. Relics that move only a slice of income — the
-  Sigil, on petting alone — are deliberately allowed a better raw rate.
+  costs 3.5× a level rather than 2× for exactly that reason: at ×1.5 a level
+  it would otherwise leave the Candle behind, and idle would stop being a
+  choice. Relics that move only a slice of income — the Sigil, on petting
+  alone — are deliberately allowed a better raw rate.
 - **Idle** means no pet for two minutes, as in Clicker Heroes, not the tab being
   closed. The Bottomless Hourglass multiplies all production while the herd is
   left alone, and nothing else does, so leaving the game running is a build

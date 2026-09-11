@@ -78,11 +78,13 @@ export interface RelicDef {
   id: RelicId
   name: string
   icon: string
-  /**
-   * Occult points for the first level. Level L costs this times L, so reaching
-   * level N costs `costStep * N * (N + 1) / 2`.
-   */
+  /** Occult points for the first level. */
   costStep: number
+  /**
+   * Each level costs this many times the one before, so levels arrive at the
+   * log of what has been spent. Defaults to 2. See relics.ts for why.
+   */
+  costRatio?: number
   /** What one more level buys, in mechanical terms. */
   desc: string
   /** Flavour text. */

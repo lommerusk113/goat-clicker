@@ -1,16 +1,21 @@
 import type { GameState, Multipliers, RelicDef, RelicId } from './types'
 
+/** How much dearer each relic level is than the last, unless the relic says otherwise. */
+export const DEFAULT_COST_RATIO = 2
+
 /**
  * Relics are the occult tree: a handful of permanent things you level rather
  * than a long list of things you buy once.
  *
- * Level L costs `costStep * L` points, so reaching level N costs
- * `costStep * N(N+1)/2` and levels come at roughly the square root of what you
- * have spent. That shape is deliberate. Occult points are logarithmic in goats
- * — five per tenfold — so an exponential price against an exponential effect
- * would leave production merely linear in points, worse than not spending them
- * at all. Triangular against multiplicative gives `1.25^sqrt(2P)`: always one
- * more level to want, never fast enough to outrun the goat curve.
+ * Level L costs `costStep * costRatio^L` points, rounded up, so levels come
+ * at the log of what has been spent. That shape is deliberate. Occult points
+ * are a root of lifetime goats — thousands of them by the late game — and a
+ * run's output grows like the occult bonus to the 2.4, so a relic whose
+ * effect compounds per level must hand out levels only as the log of points
+ * or the game runs away. Geometric pricing makes a relic's whole effect a
+ * modest power of the points earned: the Candle at ×1.25 a level and ×2 a
+ * price is `points^0.32`. Against that, every unspent point still pays its
+ * flat 10%, so the last few levels of a ladder are always a real trade.
  */
 export const RELICS: RelicDef[] = [
   {
@@ -78,15 +83,15 @@ export const RELICS: RelicDef[] = [
     id: 'hourglass',
     name: 'Bottomless Hourglass',
     icon: '⏳',
+    costStep: 1,
     /**
-     * Three, not two. Triangular cost means a level costs the square root of
-     * what has gone into a ladder, so a relic's worth per point runs as
-     * `ln(factor)/sqrt(costStep)` — at step 2 the Hourglass beats the Candle by
-     * a margin that grows with every point earned, and idle play stops being a
-     * choice. At step 3 the two sit level and the idle build's real edge is that
-     * it has one more cheap ladder to spread across.
+     * A relic's worth per point runs as `ln(factor)/ln(costRatio)`. At ×1.5 a
+     * level and the usual ×2 a price the Hourglass would beat the Candle by a
+     * margin that grows with every point earned, and idle play would stop
+     * being a choice. 3.5 puts the two level (0.324 against 0.322); the idle
+     * build's real edge is that it has one more ladder to spread across.
      */
-    costStep: 3,
+    costRatio: 3.5,
     desc: 'Production ×1.5 per level, but only while the herd is left alone.',
     blurb: 'The sand runs out. Then it keeps running.',
     apply: (m, level) => {
@@ -127,7 +132,7 @@ export function emptyRelics(): Record<RelicId, number> {
 
 /** Occult points to go from `level` to `level + 1`. */
 export function relicCost(def: RelicDef, level: number): number {
-  return def.costStep * (level + 1)
+  return Math.ceil(def.costStep * (def.costRatio ?? DEFAULT_COST_RATIO) ** level)
 }
 
 /** Occult points for the next `count` levels, at their escalating prices. */

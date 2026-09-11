@@ -158,19 +158,19 @@ describe('buyRelic', () => {
     expect(s.goats).toBe(1e12)
   })
 
-  test('charges a rising price per level', () => {
+  test('charges a doubling price per level', () => {
     const s = createInitialState(0)
-    s.occult = 6
-    // Levels 1, 2 and 3 of a costStep-1 relic come to 1 + 2 + 3.
+    s.occult = 7
+    // Levels 1, 2 and 3 of a step-1 relic come to 1 + 2 + 4.
     expect(buyRelic(s, 'candle', 3)).toBe(3)
     expect(s.occult).toBe(0)
     expect(s.occultLevels.candle).toBe(3)
   })
 
-  test('a dearer relic charges its step every level', () => {
+  test('a dearer relic starts its ladder at its step', () => {
     const s = createInitialState(0)
     s.occult = 9
-    // The Crown steps by three: 3 + 6 for two levels.
+    // The Crown steps from three: 3 + 6 for two levels.
     expect(buyRelic(s, 'crown', 2)).toBe(2)
     expect(s.occult).toBe(0)
   })
@@ -185,8 +185,8 @@ describe('buyRelic', () => {
 
   test('max takes as many levels as the points stretch to', () => {
     const s = createInitialState(0)
-    s.occult = 10
-    // 1+2+3+4 = 10 exactly; a fifth level would cost 5 more.
+    s.occult = 15
+    // 1+2+4+8 = 15 exactly; a fifth level would cost 16 more.
     expect(buyRelic(s, 'candle', 'max')).toBe(4)
     expect(s.occult).toBe(0)
   })
