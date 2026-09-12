@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { formatGoats, formatRate, formatShort, formatTime } from './format'
+import { DEMON_UNIT, formatGoats, formatRate, formatShort, formatTime, inDemonGoats } from './format'
 
 describe('formatGoats', () => {
   test('shows small counts as whole numbers with separators', () => {
@@ -18,6 +18,49 @@ describe('formatGoats', () => {
     expect(formatGoats(1_234_567)).toBe('1.235 million')
     expect(formatGoats(2_500_000_000)).toBe('2.5 billion')
     expect(formatGoats(9.87e15)).toBe('9.87 quadrillion')
+  })
+})
+
+describe('demon goats', () => {
+  test('takes over exactly where the names run out', () => {
+    expect(DEMON_UNIT).toBe(1e36)
+    expect(formatGoats(9.99e35)).toBe('999 decillion')
+    expect(formatGoats(1e36)).toBe('1 demon')
+  })
+
+  test('keeps the fraction of a demon goat instead of flooring it away', () => {
+    expect(formatGoats(1.5e36)).toBe('1.5 demon')
+    expect(formatGoats(1.234e37)).toBe('12.34 demon')
+  })
+
+  test('restarts the scale ladder on top of the new unit', () => {
+    expect(formatGoats(1e39)).toBe('1,000 demon')
+    expect(formatGoats(1.5e42)).toBe('1.5 million demon')
+    expect(formatGoats(1e69)).toBe('1 decillion demon')
+    // Past a demon goat's worth of demon goats even that runs out.
+    expect(formatGoats(1e72)).toBe('1×10⁷²')
+  })
+
+  test('reads as plain goats again below the threshold', () => {
+    expect(inDemonGoats(1e36)).toBe(true)
+    expect(inDemonGoats(9.99e35)).toBe(false)
+  })
+
+  test('never leaks a bare exponent into the headline', () => {
+    for (const e of [36, 40, 50, 69, 100, 200, 308]) {
+      expect(formatGoats(Number(`1e${e}`))).not.toMatch(/e\+/)
+    }
+  })
+
+  test('marks the short form so a price cannot be misread', () => {
+    expect(formatShort(1e36)).toBe('1D')
+    expect(formatShort(2.5e42)).toBe('2.5MD')
+  })
+
+  test('keeps the short form honest across the unit boundary', () => {
+    expect(formatShort(1.5e36)).toBe('1.5D')
+    expect(formatShort(1.23e38)).toBe('123D')
+    expect(formatShort(1e39)).toBe('1KD')
   })
 })
 

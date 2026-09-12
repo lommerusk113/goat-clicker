@@ -1335,3 +1335,32 @@ body {
   background: rgba(0, 0, 0, 0.35);
   border-radius: 6px;
 }
+
+/* --- demonic herd ----------------------------------------------------------
+   Once the herd is counted in demon goats the pasture goes with it. Only the
+   palette moves, so every panel, border and shadow follows without knowing
+   anything about it. */
+body[data-herd='demonic'] {
+  --night: #150708;
+  --pasture-hi: #7d2320;
+  --pasture-mid: #4c1417;
+  --pasture-lo: #250a0d;
+  --soil: #2e1210;
+  --soil-lo: #1a0708;
+  --wood: #6b2d24;
+  --wood-hi: #96452f;
+  --gold: #ff8c3a;
+  --gold-deep: #a33c12;
+  --rust: #ff5a3c;
+}
+
+/* The goat itself is the tell: scorched, horned by its own shadow, and lit
+   from below. Filters interpolate, so this one is a turn rather than a jump. */
+body[data-herd='demonic'] .big-goat__emoji {
+  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 26px rgba(255, 72, 30, 0.55))
+    hue-rotate(-28deg) saturate(1.5) contrast(1.12) brightness(0.82);
+}
+
+.big-goat__emoji {
+  transition: transform 90ms ease-out, filter 900ms ease;
+}

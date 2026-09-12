@@ -1,7 +1,7 @@
 import type { BuildingId, GameState, RelicId, Stats } from '../game/types'
 import { createAscend } from './ascend'
 import { byId, el, setText, toggleClass } from './dom'
-import { formatGoats, formatRate, formatShort, formatTime } from './format'
+import { formatGoats, formatRate, formatShort, formatTime, inDemonGoats } from './format'
 import { createPanels } from './panels'
 import { createParticles } from './particles'
 import { createStore } from './store'
@@ -190,6 +190,9 @@ export function createUi(handlers: UiHandlers): Ui {
   return {
     fast(state, stats) {
       setText(countNode, formatGoats(state.goats))
+      // The pasture turns while the herd is counted in demon goats, so the
+      // change of unit is something you see rather than something you notice.
+      document.body.dataset.herd = inDemonGoats(state.goats) ? 'demonic' : 'pasture'
       setText(navGoats, formatShort(state.goats))
       setText(rateNode, formatRate(stats.gps))
       setText(perClickNode, formatRate(stats.perClick))
