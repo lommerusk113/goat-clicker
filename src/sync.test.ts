@@ -3,7 +3,8 @@ import { lastSavedOf, onRequestGet, onRequestPut } from '../functions/api/save/[
 import type { Context } from '../functions/api/save/[token]'
 import { encodeSave } from './game/save'
 import { createInitialState } from './game/state'
-import { isSyncToken, pullSave, pushSave } from './sync'
+import type { GameState } from './game/types'
+import { cloudVerdict, isSyncToken, pullSave, pushSave } from './sync'
 
 const TOKEN = '123e4567-e89b-12d3-a456-426614174000'
 
@@ -115,5 +116,49 @@ describe('client helpers', () => {
     }
     await pushSave(TOKEN, 'x', 4200, false, spy)
     expect(seen).toBe('4200')
+  })
+})
+
+describe('what to do with a cloud save', () => {
+  const HERD_START = 1_000
+  const SEEN = 500
+
+  function herd(fields: Partial<GameState>): GameState {
+    return { ...createInitialState(HERD_START), lastSaved: SEEN + 1, ...fields }
+  }
+
+  test('ignores a cloud save this browser has already seen', () => {
+    const local = herd({ totalGoats: 10 })
+    expect(cloudVerdict(herd({ lastSaved: SEEN }), local, SEEN)).toBe('ignore')
+  })
+
+  test('adopts a herd that has got further', () => {
+    const local = herd({ totalGoats: 100, lifetimeGoats: 0 })
+    expect(cloudVerdict(herd({ totalGoats: 400 }), local, SEEN)).toBe('adopt')
+  })
+
+  test('adopts a save that is level with this one but newer', () => {
+    const local = herd({ totalGoats: 100 })
+    expect(cloudVerdict(herd({ totalGoats: 100 }), local, SEEN)).toBe('adopt')
+  })
+
+  // The bug: a push whose acknowledgement never landed leaves the watermark
+  // behind a save this browser wrote, and the cloud hands back the herd from
+  // before the ascension. Taking it would undo the ascension.
+  test('refuses the cloud copy of this herd from before an ascension', () => {
+    const ascended = herd({ occultEarned: 7, occult: 7, ascensions: 1, lifetimeGoats: 1_000_000, totalGoats: 10 })
+    const before = herd({ occultEarned: 0, lifetimeGoats: 0, totalGoats: 1_000_000 })
+    expect(cloudVerdict(before, ascended, SEEN)).toBe('overwrite')
+  })
+
+  test('refuses a cloud copy of this herd with fewer goats', () => {
+    const local = herd({ totalGoats: 900 })
+    expect(cloudVerdict(herd({ totalGoats: 400 }), local, SEEN)).toBe('overwrite')
+  })
+
+  test('adopts a sold farm, which is a new herd rather than an older copy', () => {
+    const local = herd({ occultEarned: 7, lifetimeGoats: 1_000_000 })
+    const sold = { ...createInitialState(HERD_START + 60_000), lastSaved: SEEN + 1 }
+    expect(cloudVerdict(sold, local, SEEN)).toBe('adopt')
   })
 })

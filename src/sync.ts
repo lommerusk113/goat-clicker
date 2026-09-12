@@ -1,3 +1,5 @@
+import type { GameState } from './game/types'
+
 /** Where the browser remembers which sync code it is linked to. */
 export const SYNC_KEY = 'goatclicker.sync'
 /** Where the browser remembers the `lastSaved` of the cloud save it last wrote or adopted. */
@@ -62,4 +64,45 @@ export async function pushSave(
   } catch {
     return { status: 'failed' }
   }
+}
+
+/** What a browser should do with the save code the cloud just handed it. */
+export type CloudVerdict =
+  /** Nothing this browser has not already seen. */
+  | 'ignore'
+  /** A herd worth playing: take it. */
+  | 'adopt'
+  /** An older copy of the herd being played: keep playing, and let the next push replace it. */
+  | 'overwrite'
+
+/**
+ * Every goat a save has ever counted. Ascension rolls `totalGoats` into
+ * `lifetimeGoats`, so the sum only ever grows and two saves of one herd can be
+ * ordered by it.
+ */
+function goatsEver(state: GameState): number {
+  return state.lifetimeGoats + state.totalGoats
+}
+
+/**
+ * Decides what to do with a cloud save. `seen` is the `lastSaved` this browser
+ * last recorded for the cloud copy.
+ *
+ * Beating `seen` makes a save news, but news is not always progress. When a
+ * push's acknowledgement never lands the watermark stays behind a save this
+ * very browser wrote, and the cloud then offers back a copy of the herd from
+ * before whatever happened since — an ascension, most visibly. Neither measure
+ * here ever falls while a herd is played, so a save behind on either is an
+ * older copy of it and is refused.
+ *
+ * A save that started on a different day is a different herd rather than an
+ * older copy of this one — a sold farm, or the herd behind a freshly entered
+ * sync code — and there the newer save wins, which is what lets selling the
+ * farm reach every device.
+ */
+export function cloudVerdict(remote: GameState, local: GameState, seen: number): CloudVerdict {
+  if (remote.lastSaved <= seen) return 'ignore'
+  if (remote.startedAt !== local.startedAt) return 'adopt'
+  const behind = remote.occultEarned < local.occultEarned || goatsEver(remote) < goatsEver(local)
+  return behind ? 'overwrite' : 'adopt'
 }

@@ -126,13 +126,23 @@ only packages, and all of them are dev-only.
   browsers.
 - **Cloud sync** is optional and needs no account. Turning it on in Settings
   mints a random sync code; entering that code on another device links it to
-  the same herd. The save is pushed once a minute and when the tab hides, and
-  pulled on load and whenever the tab comes back into view. Each device
-  remembers which cloud save it last saw; a push is refused when another device
-  has saved since, and the pusher adopts that save instead. So the device you
-  played most recently wins, even if another tab was left open. Linking a
-  device to an existing code always joins that herd. The code is the only key,
-  so treat it like a password.
+  the same herd. The save is pushed every ten minutes, when the tab hides, and
+  on an ascension, and pulled on load and whenever the tab comes back into
+  view. Writes are metered (see below), so no two are sent within five minutes
+  of each other unless the player asked for one outright — linking a code,
+  selling the farm, ascending.
+
+  Each device remembers which cloud save it last saw; a push is refused when
+  another device has saved since, and the pusher considers that save instead.
+  It only adopts one that has got at least as far: neither occult points earned
+  nor goats ever counted can fall while a herd is played, so a save behind on
+  either is an older copy of the same herd — typically this device's own, from
+  a push whose acknowledgement never arrived — and adopting it would undo
+  whatever happened since, an ascension most visibly. An older copy is marked
+  seen and then written over by the next push. A save that started on a
+  different day is a different herd rather than an older copy, so selling the
+  farm still reaches every device, and linking to a code always joins that
+  herd. The code is the only key, so treat it like a password.
 
 ## Hosting and cloud sync
 
@@ -146,7 +156,13 @@ npx wrangler kv namespace create SAVES   # prints an id
 
 Paste the id into `wrangler.toml`, or bind it in the dashboard under the Pages
 project's Settings → Bindings. Without the binding the site still works; the
-sync buttons just report a failed connection. To run the function locally:
+sync buttons just report a failed connection.
+
+The KV free tier allows 1,000 writes a day across every player, which is what
+sets the push cadence above: a tab open all day costs a few dozen writes rather
+than the several hundred a one-minute push would. Reads are capped far higher,
+at 100,000 a day, so pulling is cheap by comparison. To run the function
+locally:
 
 ```bash
 npm run build && npx wrangler pages dev dist

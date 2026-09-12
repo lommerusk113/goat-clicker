@@ -30,13 +30,23 @@ import {
   produce,
   tickBuffs,
 } from './game/state'
-import { SEEN_KEY, isSyncToken, loadSyncToken, newSyncToken, pullSave, pushSave, storeSyncToken } from './sync'
+import { SEEN_KEY, cloudVerdict, isSyncToken, loadSyncToken, newSyncToken, pullSave, pushSave, storeSyncToken } from './sync'
 import { formatGoats } from './ui/format'
 import { createUi } from './ui/render'
 
 const AUTOSAVE_SECONDS = 10
-/** Cloud writes are rarer than local ones; the save is tiny but KV writes are metered. */
-const CLOUD_SAVE_SECONDS = 60
+/**
+ * Cloud writes are far rarer than local ones. The save is tiny, but the whole
+ * game shares one metered daily write budget, so a tab left open all day has to
+ * cost a few dozen writes rather than a few hundred.
+ */
+const CLOUD_SAVE_SECONDS = 600
+/**
+ * No two cloud writes closer together than this, whoever asks. Hiding the tab
+ * pushes as well, and without a floor a player flicking between tabs would
+ * spend the day's budget on their own herd.
+ */
+const CLOUD_MIN_SECONDS = 300
 const PANEL_REFRESH_SECONDS = 0.2
 /** Rough frame time, used only to pace panel refreshes. */
 const FRAME_ESTIMATE_SECONDS = 1 / 60
@@ -81,11 +91,23 @@ function markSeen(lastSaved: number): void {
   localStorage.setItem(SEEN_KEY, String(lastSaved))
 }
 
-/** Swaps in a save from the cloud when another device has saved since this one last looked. */
-function adoptCloudSave(code: string, quiet = false): boolean {
+interface Adoption {
+  /** Swap the save in without announcing it. */
+  quiet?: boolean
+  /** The player asked for this herd by name, so take it even if it is behind. */
+  deliberate?: boolean
+}
+
+/** Swaps in a save from the cloud when another device has got further than this one. */
+function adoptCloudSave(code: string, { quiet = false, deliberate = false }: Adoption = {}): boolean {
   const remote = decodeSave(code)
-  if (!remote || remote.lastSaved <= cloudSeen) return false
+  if (!remote) return false
+  const verdict = deliberate ? 'adopt' : cloudVerdict(remote, state, cloudSeen)
+  if (verdict === 'ignore') return false
+  // Seen either way. Recording it lets the next push land instead of bouncing
+  // off the same stored save every time.
   markSeen(remote.lastSaved)
+  if (verdict === 'overwrite') return false
   state = remote
   const gain = payOfflineTime(state)
   saveGame(state, localStorage, Date.now())
@@ -99,16 +121,37 @@ function adoptCloudSave(code: string, quiet = false): boolean {
 async function pullCloud(quiet = false): Promise<void> {
   if (!syncToken) return
   const code = await pullSave(syncToken)
-  if (code) adoptCloudSave(code, quiet)
+  if (code) adoptCloudSave(code, { quiet })
 }
 
-/** Uploads this herd unless another device has saved since `base`; then that herd is adopted instead. */
-async function pushCloud(keepalive = false, base = cloudSeen): Promise<void> {
+interface Push {
+  /** Let the request outlive a closing tab. */
+  keepalive?: boolean
+  /** The cloud save this push claims to have seen, instead of the one this browser recorded. */
+  base?: number
+  /** Write now whatever the last write cost; for the handful the player asked for. */
+  force?: boolean
+}
+
+/** When the last cloud write went out, so the metered ones can be spaced. */
+let lastPush = 0
+
+/** Uploads this herd unless another device has got further since `base`; then that herd is adopted instead. */
+async function pushCloud({ keepalive = false, base = cloudSeen, force = false }: Push = {}): Promise<void> {
   if (!syncToken) return
+  const now = Date.now()
+  if (!force && now - lastPush < CLOUD_MIN_SECONDS * 1000) return
+  lastPush = now
+
   const lastSaved = state.lastSaved
+  // A keepalive push outlives the page, so its reply usually lands nowhere. The
+  // write itself goes out all the same, and a watermark left behind is exactly
+  // what makes the cloud offer this browser its own stale save back later, so
+  // record it up front rather than awaiting an acknowledgement that will not come.
+  if (keepalive) markSeen(lastSaved)
   const result = await pushSave(syncToken, encodeSave(state), base, keepalive)
   if (result.status === 'saved') markSeen(lastSaved)
-  else if (result.status === 'stale') adoptCloudSave(result.code, true)
+  else if (result.status === 'stale') adoptCloudSave(result.code, { quiet: true })
 }
 
 const ui = createUi({
@@ -134,6 +177,10 @@ const ui = createUi({
     const result = ascend(state)
     if (result.occult <= 0) return
     saveGame(state, localStorage, Date.now())
+    // Ascensions are rare and are the one moment worth a write of its own: it
+    // is the herd the other devices most need, and the one a stale cloud copy
+    // would most visibly undo.
+    void pushCloud({ force: true })
     refreshPanels()
     const gilded = result.gilded.map((id) => `${BUILDING_BY_ID[id].icon} ${BUILDING_BY_ID[id].name}`)
     ui.toast({
@@ -201,7 +248,7 @@ const ui = createUi({
     refreshPanels()
     if (syncToken) {
       // Selling outranks whatever another device saved meanwhile, so push as if we had just seen it.
-      void pushCloud(false, Date.now()).then(() => ui.status('Farm sold, here and in the cloud. Fresh pasture, one goat at a time.'))
+      void pushCloud({ base: Date.now(), force: true }).then(() => ui.status('Farm sold, here and in the cloud. Fresh pasture, one goat at a time.'))
     } else {
       ui.status('Farm sold. Fresh pasture, one goat at a time.')
     }
@@ -213,7 +260,7 @@ const ui = createUi({
     markSeen(0)
     saveGame(state, localStorage, Date.now())
     ui.sync(syncToken)
-    pushCloud().then(() => ui.status('Cloud sync is on. Enter this code on another device to share the herd.'))
+    pushCloud({ force: true }).then(() => ui.status('Cloud sync is on. Enter this code on another device to share the herd.'))
   },
 
   async linkSync(code) {
@@ -228,11 +275,11 @@ const ui = createUi({
     markSeen(0)
     ui.sync(token)
     const remote = await pullSave(token)
-    if (remote && adoptCloudSave(remote, true)) {
+    if (remote && adoptCloudSave(remote, { quiet: true, deliberate: true })) {
       ui.status('Linked. You are now playing the cloud herd.')
     } else {
       saveGame(state, localStorage, Date.now())
-      await pushCloud()
+      await pushCloud({ force: true })
       ui.status('Linked. This herd is now the cloud herd.')
     }
   },
@@ -335,12 +382,12 @@ document.addEventListener('visibilitychange', () => {
     return
   }
   saveGame(state, localStorage, Date.now())
-  void pushCloud(true)
+  void pushCloud({ keepalive: true })
 })
 
 window.addEventListener('pagehide', () => {
   saveGame(state, localStorage, Date.now())
-  void pushCloud(true)
+  void pushCloud({ keepalive: true })
 })
 
 refreshPanels()
