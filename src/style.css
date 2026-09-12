@@ -6,6 +6,8 @@
   --pasture-lo: #142a10;
   --soil: #2b1d12;
   --soil-lo: #190f08;
+  --panel-hi: #1a2b1c;
+  --panel-lo: #121c14;
   --wood: #6f4a27;
   --wood-hi: #9a6a3a;
   --cream: #f7f0da;
@@ -262,7 +264,7 @@ body {
       rgba(255, 255, 255, 0.014) 0 2px,
       transparent 2px 5px
     ),
-    linear-gradient(180deg, #1a2b1c 0%, #121c14 100%);
+    linear-gradient(180deg, var(--panel-hi) 0%, var(--panel-lo) 100%);
 }
 
 .panel-head {
@@ -1347,6 +1349,8 @@ body[data-herd='demonic'] {
   --pasture-lo: #250a0d;
   --soil: #2e1210;
   --soil-lo: #1a0708;
+  --panel-hi: #2b1315;
+  --panel-lo: #1b0c0e;
   --wood: #6b2d24;
   --wood-hi: #96452f;
   --gold: #ff8c3a;
