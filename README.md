@@ -111,7 +111,12 @@ only packages, and all of them are dev-only.
   now and then is enough to catch some. Catching one usually pays a lump sum
   (55%), or starts a Frenzy (×7 production and petting for a minute, 40%), or
   rarely a Petting Frenzy (×777 per pet for thirteen seconds, 5%). The two
-  frenzies stack. They used to come half as often with a 77-second Frenzy;
+  frenzies stack, but neither is ever drawn while it is already running: its
+  share goes to whatever is left, so no goat is caught for nothing. That only
+  bites once the Lantern is levelled, which shortens the wait and lengthens the
+  frenzy at the same time until they overlap — at four levels better than a
+  third of the goats caught were repeats of a frenzy already going, and
+  refreshing it looked to the player like catching a goat that did nothing. They used to come half as often with a 77-second Frenzy;
   the rate was doubled and the Frenzy shortened so that a player who catches
   them all earns about half again as much as one who ignores them while an
   idler gains around 15%: attention is meant to pay. The odds matter too:

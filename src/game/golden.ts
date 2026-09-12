@@ -27,9 +27,27 @@ export function goldenLifetime(m: Multipliers): number {
   return BALANCE.goldenLifetime * m.goldenLife
 }
 
-function pick(roll: number): GoldenKind {
-  if (roll < BALANCE.goldenClickFrenzyChance) return 'clickFrenzy'
-  if (roll < BALANCE.goldenClickFrenzyChance + BALANCE.goldenFrenzyChance) return 'frenzy'
+/**
+ * What a golden goat is worth catching right now. A frenzy the herd is already
+ * running is left out of the draw and its share handed to whatever is left:
+ * re-catching one only refreshed a buff that was running anyway, which reads
+ * as a golden goat that did nothing, and the Lantern makes that the common
+ * case — at a few levels it shortens the wait and lengthens the frenzy until
+ * they overlap, and better than a third of the goats caught were repeats.
+ * With nothing running the draw is exactly as it was.
+ */
+function pick(roll: number, state: GameState): GoldenKind {
+  const running = (id: string) => state.buffs.some((b) => b.id === id)
+  const odds: [GoldenKind, number][] = [
+    ['clickFrenzy', running('click-frenzy') ? 0 : BALANCE.goldenClickFrenzyChance],
+    ['frenzy', running('frenzy') ? 0 : BALANCE.goldenFrenzyChance],
+  ]
+  const lucky = 1 - BALANCE.goldenClickFrenzyChance - BALANCE.goldenFrenzyChance
+  let left = roll * (lucky + odds[0][1] + odds[1][1])
+  for (const [kind, chance] of odds) {
+    if (left < chance) return kind
+    left -= chance
+  }
   return 'lucky'
 }
 
@@ -39,7 +57,7 @@ function pick(roll: number): GoldenKind {
  */
 export function rollGolden(state: GameState, rng: () => number = Math.random): GoldenReward {
   const m = multipliers(state)
-  const kind = pick(rng())
+  const kind = pick(rng(), state)
 
   if (kind === 'frenzy') {
     return {
