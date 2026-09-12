@@ -79,20 +79,26 @@ function named(n: number): string {
   return `${trimZeros(value.toFixed(3))} ${name}`
 }
 
+/**
+ * A count of demon goats, kept to the same six digits the ordinary ladder
+ * allows. Fractions are worth keeping while a single demon goat still divides
+ * into something readable — half of one is a great many goats — but once there
+ * are thousands of them the decimals are noise, and separators never sit
+ * beside decimals anywhere else in the game.
+ */
+function demonHerd(herd: number): string {
+  if (herd < 1000) return herd.toLocaleString('en-US', { maximumFractionDigits: 3 })
+  const whole = Math.round(herd)
+  // A herd that rounds up to a million belongs on the named ladder.
+  return whole < 1e6 ? whole.toLocaleString('en-US') : named(herd)
+}
+
 /** The headline count: separators below a million, named scales above. */
 export function formatGoats(n: number): string {
   if (!Number.isFinite(n)) return 'a lot of'
   if (n < 0) return `-${formatGoats(-n)}`
   if (n >= DEMON_CAP) return scientific(n)
-  if (inDemonGoats(n)) {
-    const herd = asDemonGoats(n)
-    // Demon goats come by the fraction, unlike the ordinary kind: half of one
-    // is still a great many goats, and flooring would throw it away. Rounding
-    // also absorbs the division, which lands 1e39 a hair under a thousand.
-    const body =
-      herd < 1e6 ? herd.toLocaleString('en-US', { maximumFractionDigits: 3 }) : named(herd)
-    return `${body} demon`
-  }
+  if (inDemonGoats(n)) return `${demonHerd(asDemonGoats(n))} demon`
   if (n < 1e6) return Math.floor(n).toLocaleString('en-US')
   return named(n)
 }

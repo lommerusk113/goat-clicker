@@ -33,6 +33,24 @@ describe('demon goats', () => {
     expect(formatGoats(1.234e37)).toBe('12.34 demon')
   })
 
+  test('stops counting decimals once whole demon goats are the story', () => {
+    // The ordinary ladder never shows more than six digits ("987.654 million"),
+    // and separators never sit alongside decimals. Demon goats follow suit.
+    expect(formatGoats(1.2345678e39)).toBe('1,235 demon')
+    expect(formatGoats(1.23456789e41)).toBe('123,457 demon')
+    expect(formatGoats(9.8765e41)).toBe('987,650 demon')
+  })
+
+  test('keeps decimals while a single demon goat still divides', () => {
+    expect(formatGoats(5.2371e36)).toBe('5.237 demon')
+    expect(formatGoats(9.87654e37)).toBe('98.765 demon')
+    expect(formatGoats(9.994e38)).toBe('999.4 demon')
+  })
+
+  test('carries into the named ladder rather than printing a round million', () => {
+    expect(formatGoats(9.9999999e41)).toBe('1 million demon')
+  })
+
   test('restarts the scale ladder on top of the new unit', () => {
     expect(formatGoats(1e39)).toBe('1,000 demon')
     expect(formatGoats(1.5e42)).toBe('1.5 million demon')
