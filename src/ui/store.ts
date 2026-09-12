@@ -8,7 +8,7 @@ import { formatRate, formatShort } from './format'
 import type { TipContent, Tooltip } from './tooltip'
 
 export interface StoreHandlers {
-  /** How many units the ×1 / ×10 / ×100 switch is set to. */
+  /** How many units the ×1 / ×10 / ×25 / ×100 switch is set to. */
   amount(): number
   buyBuilding(id: BuildingId, count: number): void
   buyUpgrade(id: string): void
