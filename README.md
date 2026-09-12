@@ -35,6 +35,16 @@ only packages, and all of them are dev-only.
   old building deep is a choice, not a default; gilds are what make one shine.
   `VITE_SIM=1 npx vitest run src/game/sim.test.ts` prints what a greedy buyer
   owns over time, for checking that balance after changes.
+- **Renown** pays the whole herd 0.25% more, compounding, for every milestone
+  crossed anywhere. Without it the cheap lines are decorative forever: buying
+  by payback holds all thirteen within a couple of hundred units of each
+  other, so they cross every milestone together and the ladder cancels out of
+  the comparison — a line ends up producing its share of what you can spend on
+  it, and the Scratching Post's share is a millionth of the Elder Goat's. Since
+  milestones only exist past 200 owned, which no building reaches before all
+  thirteen are unlocked and deep, nothing about the early game changes. At
+  Elder Goat 300 a block on an old line pays 62 times what a block on the Elder
+  Goat pays, while the tier directly below is left at parity.
 - **Gilds** are handed out on a random building you owned that run: the first
   at five occult points ever earned, then one each time that total grows by
   half (5, 7.5, 11, 17, 25, 38, 57 …), so ascending for single points earns

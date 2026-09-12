@@ -21,6 +21,23 @@ export const BALANCE = {
   /** ...except every `milestoneBig`-th, worth `milestoneBigMult` instead. */
   milestoneBig: 1000,
   milestoneBigMult: 10,
+  /**
+   * Herd-wide output each milestone crossed anywhere grants, in percent,
+   * compounding. Without it a cheap line is permanently decorative: payback
+   * play holds every building within a couple of hundred units of the others,
+   * so all thirteen cross every milestone together and the ladder cancels out
+   * of the comparison, leaving a line's share of output equal to its share of
+   * what you can spend — a millionth of the top building's. Compounding
+   * rather than additive because an additive bonus is worth 1/n of output by
+   * the nth milestone and stops changing anyone's mind; this way a milestone
+   * is worth the same slice forever. At 0.25% a block on an old line pays 62
+   * times what the top building's block pays at Elder Goat 300, which is
+   * enough to make it the buy without disturbing the tier below. Milestone
+   * counts grow like the log of wealth, so this is a log factor on output:
+   * measured in the simulator it moves the pacing exponent 0.585 to 0.597,
+   * clear of the 0.643 that sent the idle build into runaway.
+   */
+  renownPercent: 0.25,
   /** Extra output per gild, as a fraction. Gilds add up rather than compound. */
   gildBonus: 1,
   /** Lifetime goats that count as one occult unit. */

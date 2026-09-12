@@ -70,6 +70,12 @@ export function createPanels(tooltip: Tooltip): Panels {
       ...row('Buildings owned', stats.buildingsOwned.toLocaleString('en-US')),
       ...row('Upgrades bought', `${s.upgrades.length} of ${UPGRADES.length}`),
       ...row('Herd-wide bonus', `×${stats.globalMult.toFixed(2)}`),
+      ...row(
+        'Renown',
+        stats.renown > 0
+          ? `${stats.renown} milestone${stats.renown === 1 ? '' : 's'}, ×${stats.renownMult.toFixed(2)}`
+          : 'none yet',
+      ),
 
       section('Luck'),
       ...row('Golden goats caught', s.goldenClicks.toLocaleString('en-US')),

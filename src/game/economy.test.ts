@@ -10,7 +10,10 @@ import {
   idleIn,
   isIdle,
   milestoneMult,
+  milestonesCrossed,
   nextMilestone,
+  renown,
+  renownMult,
   totalBuildings,
 } from './economy'
 import { BALANCE } from './balance'
@@ -40,6 +43,63 @@ describe('bulkCost', () => {
   test('sums the next N prices', () => {
     expect(bulkCost(post, 0, 1)).toBe(costOf(post, 0))
     expect(bulkCost(post, 0, 3)).toBe(costOf(post, 0) + costOf(post, 1) + costOf(post, 2))
+  })
+})
+
+describe('milestonesCrossed', () => {
+  test('counts nothing until the first milestone', () => {
+    expect(milestonesCrossed(0)).toBe(0)
+    expect(milestonesCrossed(199)).toBe(0)
+  })
+
+  test('counts one per 25 owned from 200 up', () => {
+    expect(milestonesCrossed(200)).toBe(1)
+    expect(milestonesCrossed(224)).toBe(1)
+    expect(milestonesCrossed(225)).toBe(2)
+    expect(milestonesCrossed(300)).toBe(5)
+  })
+
+  test('a thousandth counts as one like any other', () => {
+    expect(milestonesCrossed(1000)).toBe(milestonesCrossed(975) + 1)
+  })
+})
+
+describe('renown', () => {
+  test('is nothing on a fresh herd', () => {
+    expect(renown(createInitialState(0))).toBe(0)
+    expect(renownMult(createInitialState(0))).toBe(1)
+  })
+
+  test('adds up the milestones every building has crossed', () => {
+    const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 300, meadow: 225 } })
+    expect(renown(s)).toBe(5 + 2)
+  })
+
+  test('compounds the herd-wide bonus once per milestone', () => {
+    const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 225 } })
+    expect(renownMult(s)).toBeCloseTo((1 + BALANCE.renownPercent / 100) ** 2)
+  })
+
+  test('multiplies production, so a milestone pays the whole herd', () => {
+    const bare = stateWith({ buildings: { ...createInitialState(0).buildings, post: 199, meadow: 50 } })
+    const past = stateWith({ buildings: { ...createInitialState(0).buildings, post: 200, meadow: 50 } })
+    // The post's own line quadruples; the meadow only gains what renown pays it.
+    expect(computeStats(past).byBuilding.meadow / computeStats(bare).byBuilding.meadow).toBeCloseTo(
+      1 + BALANCE.renownPercent / 100,
+    )
+  })
+
+  test('is reported to the interface alongside what it pays', () => {
+    const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 250 } })
+    const stats = computeStats(s)
+    expect(stats.renown).toBe(3)
+    expect(stats.renownMult).toBeCloseTo((1 + BALANCE.renownPercent / 100) ** 3)
+  })
+
+  test('leaves a herd below the first milestone exactly as it was', () => {
+    const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 199, meadow: 199 } })
+    expect(renownMult(s)).toBe(1)
+    expect(computeStats(s).globalMult).toBe(1)
   })
 })
 
@@ -213,8 +273,10 @@ describe('goatsPerClick', () => {
 
   test('milestones lift a post\'s production but not its click bonus', () => {
     const s = stateWith({ buildings: { ...createInitialState(0).buildings, post: 200 } })
-    expect(baseGoatsPerSecond(s)).toBeCloseTo(200 * 0.3 * 4)
-    expect(goatsPerClick(s)).toBeCloseTo(1 + 200 * 0.02)
+    // The 200th post is also the herd's first milestone, so renown pays on top of
+    // both — it is herd-wide, like the occult bonus. The x4 itself stays off pets.
+    expect(baseGoatsPerSecond(s)).toBeCloseTo(200 * 0.3 * 4 * renownMult(s))
+    expect(goatsPerClick(s)).toBeCloseTo((1 + 200 * 0.02) * renownMult(s))
   })
 
   test('adds a share of production, based on unbuffed output', () => {

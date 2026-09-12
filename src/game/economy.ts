@@ -18,6 +18,32 @@ export function milestoneMult(owned: number): number {
   return milestoneMult ** (steps - big) * milestoneBigMult ** big
 }
 
+/** How many milestones a building of this size has crossed. */
+export function milestonesCrossed(owned: number): number {
+  const { milestoneStart, milestoneStep } = BALANCE
+  if (owned < milestoneStart) return 0
+  return Math.floor((owned - milestoneStart) / milestoneStep) + 1
+}
+
+/** Milestones the whole herd has crossed, counted across every building. */
+export function renown(state: GameState): number {
+  let n = 0
+  for (const id of BUILDING_IDS) n += milestonesCrossed(state.buildings[id])
+  return n
+}
+
+/**
+ * What the herd earns for `n` milestones. Every milestone counts the same,
+ * wherever it was earned, which is what keeps the cheap lines worth feeding.
+ */
+export function renownBonus(n: number): number {
+  return (1 + BALANCE.renownPercent / 100) ** n
+}
+
+export function renownMult(state: GameState): number {
+  return renownBonus(renown(state))
+}
+
 /** The next count at which a building's milestone multiplier grows. */
 export function nextMilestone(owned: number): number {
   const { milestoneStart, milestoneStep } = BALANCE
@@ -61,6 +87,7 @@ export function multipliers(state: GameState): Multipliers {
     occultPercent: BALANCE.occultBasePercent,
     idle: 1,
     gildBonus: BALANCE.gildBonus,
+    renown: renown(state),
     startGoats: 0,
   }
 
@@ -111,6 +138,7 @@ export function multipliers(state: GameState): Multipliers {
   }
   // Unspent points only: spend too many and the herd slows down.
   m.global *= 1 + (state.occult * m.occultPercent) / 100
+  m.global *= renownBonus(m.renown)
   return m
 }
 
@@ -192,6 +220,8 @@ export function computeStats(state: GameState): Stats {
     byBuilding,
     perUnit,
     globalMult: m.global,
+    renown: m.renown,
+    renownMult: renownBonus(m.renown),
     gildBonus: m.gildBonus,
     buildingsOwned: totalBuildings(state),
     idleMult: idle,

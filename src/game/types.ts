@@ -118,6 +118,8 @@ export interface Multipliers {
   idle: number
   /** Extra output each gild grants, as a fraction. */
   gildBonus: number
+  /** Milestones the whole herd has crossed, which is what renown is paid on. */
+  renown: number
   startGoats: number
 }
 
@@ -199,6 +201,9 @@ export interface Stats {
   /** What one more unit of each building would add, on the same footing as byBuilding. */
   perUnit: Record<BuildingId, number>
   globalMult: number
+  /** Milestones the whole herd has crossed, and the bonus they are paying. */
+  renown: number
+  renownMult: number
   /** Extra output each gild is granting, as a fraction. */
   gildBonus: number
   buildingsOwned: number

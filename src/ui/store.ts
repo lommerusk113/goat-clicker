@@ -98,6 +98,9 @@ export function createStore(tooltip: Tooltip, handlers: StoreHandlers): Store {
       `Next milestone at ${upcoming}: ×${bump} output` +
         (milestoneMult(owned) > 1 ? ` (×${formatShort(milestoneMult(owned))} so far)` : '') +
         `, then every ${BALANCE.milestoneStep}`,
+      // The herd-wide half is why an old line is still worth feeding.
+      `...and +${BALANCE.renownPercent}% renown to the whole herd` +
+        (stats.renown > 0 ? `, on top of ×${stats.renownMult.toFixed(2)} from ${stats.renown} so far` : ''),
     )
     const gilds = state.gilds[def.id]
     if (gilds > 0) lines.push(`${gilds} gild${gilds === 1 ? '' : 's'}: +${gilds * stats.gildBonus * 100}% output`)
