@@ -48,6 +48,19 @@ body {
   line-height: 1.45;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+
+  /* A stray drag used to leave text selected, and Chrome then treated the next
+     press as the start of a drag-and-drop instead of a click on a goat. Nothing
+     in the pasture is worth reading out, so nothing in it is selectable. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The boxes you paste a save or a sync link into are the exception. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .sr-only {
@@ -199,7 +212,6 @@ body {
   border: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
 }
 
 .big-goat__emoji {
@@ -1333,6 +1345,7 @@ body {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--gold);
+  -webkit-user-select: all;
   user-select: all;
   background: rgba(0, 0, 0, 0.35);
   border-radius: 6px;
