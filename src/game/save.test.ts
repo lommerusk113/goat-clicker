@@ -176,7 +176,9 @@ describe('migrating a version 2 save to the relics', () => {
 
   test('carries renamed achievements across', () => {
     const back = decodeSave(version2Save())!
-    expect(back.achievements.sort()).toEqual(['first-goat', 'upgrades-75', 'upgrades-90'])
+    // 'upgrades-130' has now been renamed twice; the map points it straight at
+    // the current id rather than at the intermediate one, which is gone.
+    expect(back.achievements.sort()).toEqual(['first-goat', 'upgrades-75', 'upgrades-80'])
   })
 
   test('leaves gilds and ascensions alone', () => {

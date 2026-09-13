@@ -18,7 +18,11 @@ const CURVE_VERSION = 4
  */
 const RENAMED_ACHIEVEMENTS: Record<string, string> = {
   'upgrades-100': 'upgrades-75',
-  'upgrades-130': 'upgrades-90',
+  // Only one hop is followed, so the older names point at the current id too.
+  'upgrades-130': 'upgrades-80',
+  'upgrades-90': 'upgrades-80',
+  'clicks-100000': 'clicks-50000',
+  'clicks-1m': 'clicks-250000',
 }
 
 /** Highest tier each building still has, so a save from the eight-tier days can be squared up. */

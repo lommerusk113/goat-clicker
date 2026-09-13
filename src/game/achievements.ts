@@ -1,5 +1,6 @@
 import { BUILDINGS, BUILDING_BY_ID } from './buildings'
 import { RELICS } from './relics'
+import { UPGRADES } from './upgrades'
 import { baseGoatsPerSecond, totalBuildings } from './economy'
 import type { AchievementDef, BuildingId, GameState } from './types'
 
@@ -176,11 +177,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     earned: (s) => s.clicks >= 10_000,
   },
   {
-    id: 'clicks-100000',
+    id: 'clicks-50000',
     name: 'Carpal Tunnel',
     icon: '🦴',
-    desc: 'Pet the goat 100,000 times.',
-    earned: (s) => s.clicks >= 100_000,
+    desc: 'Pet the goat 50,000 times.',
+    earned: (s) => s.clicks >= 50_000,
   },
   {
     id: 'clicks-goats-1m',
@@ -204,11 +205,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     earned: (s) => s.goatsFromClicks >= 1_000_000_000_000,
   },
   {
-    id: 'clicks-1m',
-    name: 'One Million Pets',
+    id: 'clicks-250000',
+    name: 'Worn Smooth',
     icon: '🖱️',
-    desc: 'Pet the goat 1,000,000 times.',
-    earned: (s) => s.clicks >= 1_000_000,
+    desc: 'Pet the goat 250,000 times.',
+    earned: (s) => s.clicks >= 250_000,
   },
 
   // Rate
@@ -343,11 +344,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     earned: (s) => s.upgrades.length >= 75,
   },
   {
-    id: 'upgrades-90',
+    id: 'upgrades-80',
     name: 'Nothing Left to Buy',
     icon: '🏷️',
-    desc: 'Buy 90 upgrades.',
-    earned: (s) => s.upgrades.length >= 90,
+    // Counted off the table rather than written down, because this one has
+    // twice outlived the number it was given: it asked for 130 upgrades, then
+    // 90, while the game has only ever had 80 to sell.
+    desc: `Buy all ${UPGRADES.length} upgrades in one run.`,
+    earned: (s) => s.upgrades.length >= UPGRADES.length,
   },
   {
     id: 'playtime-1h',

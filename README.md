@@ -124,7 +124,11 @@ only packages, and all of them are dev-only.
   out four times the whole economy in the first hour.
 - **Achievements** are awarded the moment their condition is met, and feed the
   herd-wide upgrades. Every building has badges at 50, 100, 200, 300, 400 and
-  500 owned.
+  500 owned. Because three upgrades pay a percentage per achievement, one that
+  cannot be earned is lost production rather than a missing badge, so the
+  thresholds are counted off the tables they refer to where they can be: the
+  last upgrade badge asks for `UPGRADES.length`, having twice outlived a number
+  written down by hand.
 - **Saving** happens every ten seconds, when the tab is hidden, and on close.
   Time away pays out at half rate, capped at three hours, at whatever idle
   multiplier the Hourglass is granting. The Settings tab has save codes for moving a game between
