@@ -38,6 +38,8 @@ export interface Ui {
   toast(content: ToastContent): void
   /** Puts a golden goat on screen. `onCatch` reports what catching it gave. */
   showGolden(lifetime: number, onCatch: () => string): void
+  /** Golden goats standing in the pasture right now. */
+  goldensOnScreen(): number
   status(message: string): void
   /** `away` is the real time gone; `paid` is how much of it the herd worked, after the offline cap. */
   welcome(gain: { away: number; paid: number; goats: number }): void
@@ -233,6 +235,8 @@ export function createUi(handlers: UiHandlers): Ui {
 
       goldensNode.append(node)
     },
+
+    goldensOnScreen: () => goldensNode.childElementCount,
 
     status(message) {
       setText(statusNode, message)

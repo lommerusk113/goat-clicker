@@ -103,6 +103,13 @@ export const BALANCE = {
   goldenFrenzyChance: 0.4,
   goldenClickFrenzyChance: 0.05,
   goldenClickFrenzyMult: 777,
+  /**
+   * Golden goats allowed on screen at once. The upgrades that shorten the wait
+   * stack far enough that the pasture can fill with them, and a crowd past this
+   * size only covers itself. No goat is lost to the cap: the timer waits at
+   * zero while the pasture is full, the same as it does behind a hidden tab.
+   */
+  goldenMaxOnScreen: 100,
 }
 
 export type Balance = typeof BALANCE

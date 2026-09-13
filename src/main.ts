@@ -1,5 +1,6 @@
 import './style.css'
 
+import { BALANCE } from './game/balance'
 import { BUILDING_BY_ID } from './game/buildings'
 import { baseGoatsPerSecond, computeStats, multipliers } from './game/economy'
 import { goldenLifetime, nextGoldenDelay, rollGolden } from './game/golden'
@@ -340,9 +341,10 @@ startLoop({
     }
 
     // A golden goat nobody can see is a wasted one, so the timer waits at zero
-    // until the tab is back in view.
+    // until the tab is back in view — and until there is room in the pasture,
+    // which a goat lost among a hundred others amounts to the same thing.
     if (state.goldenTimer > 0) state.goldenTimer -= dt
-    else if (!document.hidden) spawnGolden()
+    else if (!document.hidden && ui.goldensOnScreen() < BALANCE.goldenMaxOnScreen) spawnGolden()
 
     for (const earned of claimAchievements(state)) {
       ui.toast({ icon: earned.icon, kind: 'Achievement', name: earned.name, desc: earned.desc })
