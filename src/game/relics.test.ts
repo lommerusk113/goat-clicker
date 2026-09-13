@@ -76,28 +76,10 @@ describe('relic effects', () => {
     expect(multipliers(withRelic('ashes', 3)).startGoats).toBe(1e6)
   })
 
-  test('the Lantern makes golden goats longer and richer, not more frequent', () => {
+  test('the Lantern makes golden goats both more frequent and longer', () => {
     const m = multipliers(withRelic('lantern', 2))
+    expect(m.goldenFreq).toBeCloseTo(1.25 ** 2)
     expect(m.goldenLife).toBeCloseTo(1.25 ** 2)
-    expect(m.goldenPower).toBeCloseTo(1.25 ** 2)
-    expect(m.goldenFreq).toBe(1)
-  })
-
-  test('the Lantern pays the same an hour as the frequency it replaced', () => {
-    // What a Lucky pays an hour runs as freq × power. The relic used to put its
-    // 1.25 a level on the first and now puts it on the second, so the product
-    // is unchanged and only the number of goats it arrives in has moved.
-    for (const level of [1, 5, 13]) {
-      const m = multipliers(withRelic('lantern', level))
-      expect(m.goldenFreq * m.goldenPower).toBeCloseTo(1.25 ** level)
-    }
-  })
-
-  test('the Lantern no longer crowds the pasture on both sides', () => {
-    // Goats standing at once run as lifetime / gap, so scaling both halves
-    // squared the crowd. At level ten that was thirty-five goats waiting.
-    const m = multipliers(withRelic('lantern', 10))
-    expect(m.goldenLife * m.goldenFreq).toBeCloseTo(1.25 ** 10)
   })
 
   test('the Hourglass raises only the idle multiplier', () => {

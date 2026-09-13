@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { BALANCE } from './balance'
 import { multipliers } from './economy'
-import { goldenLifetime, nextGoldenDelay, rollGolden } from './golden'
+import { goldenLifetime, goldenMakeup, nextGoldenDelay, rollGolden } from './golden'
 import { addBuff, createInitialState } from './state'
-import type { GameState } from './types'
+import type { GameState, Multipliers } from './types'
 
 /** An rng that hands out queued values, then repeats the last one. */
 function fakeRng(...values: number[]): () => number {
@@ -24,6 +24,65 @@ describe('nextGoldenDelay', () => {
     const faster = nextGoldenDelay(multipliers(s), fakeRng(0.5))
     const plain = nextGoldenDelay(multipliers(createInitialState(0)), fakeRng(0.5))
     expect(faster).toBeCloseTo(plain / 1.5)
+  })
+
+  test('never sends one sooner than the floor, however high the frequency', () => {
+    const m = multipliers(createInitialState(0))
+    m.goldenFreq = 1_000
+    for (const roll of [0, 0.5, 0.999999]) {
+      expect(nextGoldenDelay(m, fakeRng(roll))).toBe(BALANCE.goldenMinGap)
+    }
+  })
+})
+
+/**
+ * The floor thins the goats, so the reward makes the thinning back. What an
+ * hour pays runs as the reward over the gap, and the make-up is defined as the
+ * ratio of those gaps, so the two cancel: a levelled-up player earns the same
+ * an hour with the floor as they would have without it.
+ */
+describe('goldenMakeup', () => {
+  const withFreq = (freq: number): Multipliers => {
+    const m = multipliers(createInitialState(0))
+    m.goldenFreq = freq
+    return m
+  }
+
+  /** The average gap the draw would give with no floor. */
+  const bareGap = (freq: number) => (BALANCE.goldenMinDelay + BALANCE.goldenMaxDelay) / 2 / freq
+
+  /** The average gap actually waited, measured off the real draw. */
+  function measuredGap(freq: number): number {
+    const m = withFreq(freq)
+    let total = 0
+    const steps = 20_000
+    for (let i = 0; i < steps; i++) total += nextGoldenDelay(m, fakeRng((i + 0.5) / steps))
+    return total / steps
+  }
+
+  test('is nothing at a frequency the floor cannot reach', () => {
+    expect(goldenMakeup(withFreq(1))).toBe(1)
+    expect(goldenMakeup(withFreq(14))).toBe(1)
+  })
+
+  test('pays back exactly what the floor held back', () => {
+    // Frequencies either side of where the floor starts to bite (15) and where
+    // it swallows the whole draw (45).
+    for (const freq of [16, 20, 45, 100, 1_000]) {
+      expect(goldenMakeup(withFreq(freq))).toBeCloseTo(measuredGap(freq) / bareGap(freq), 3)
+    }
+  })
+
+  test('an hour pays the same as it did before the floor', () => {
+    for (const freq of [1, 20, 150]) {
+      const perHour = (3_600 / measuredGap(freq)) * goldenMakeup(withFreq(freq))
+      expect(perHour).toBeCloseTo(3_600 / bareGap(freq), 6)
+    }
+  })
+
+  test('a goat at the deep end is worth many of the old ones', () => {
+    // A goat every two seconds becomes one every ten, each worth five.
+    expect(goldenMakeup(withFreq(150))).toBeCloseTo(5, 5)
   })
 })
 

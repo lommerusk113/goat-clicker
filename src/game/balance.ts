@@ -97,6 +97,14 @@ export const BALANCE = {
    */
   goldenMinDelay: 150,
   goldenMaxDelay: 450,
+  /**
+   * The shortest gap between golden goats, however far the frequency line is
+   * levelled. Deep in a run they arrived about once a second, which is not a
+   * windfall any more, it is a job. Nothing is taken by the floor: whatever
+   * the gap is stretched by, `goldenMakeup` hands back to the goats that do
+   * arrive, so the hour pays what it always paid in fewer, fatter goats.
+   */
+  goldenMinGap: 10,
   /** Seconds a golden goat stays on screen, before upgrades. Long, so idling is fine. */
   goldenLifetime: 40,
   /** Odds of each golden goat outcome; whatever is left over is Lucky. */

@@ -20,7 +20,33 @@ export interface GoldenReward {
  */
 export function nextGoldenDelay(m: Multipliers, rng: () => number = Math.random): number {
   const span = BALANCE.goldenMaxDelay - BALANCE.goldenMinDelay
-  return (BALANCE.goldenMinDelay + rng() * span) / m.goldenFreq
+  const drawn = (BALANCE.goldenMinDelay + rng() * span) / m.goldenFreq
+  return Math.max(BALANCE.goldenMinGap, drawn)
+}
+
+/**
+ * What the goats that do arrive owe to the ones the floor turned away.
+ *
+ * The gap is drawn flat between the two delays over the frequency, so the
+ * floor bites the short half of that draw first and the whole of it later.
+ * Comparing the average gap with the floor against the average without gives
+ * the exact factor by which goats have been thinned, and every reward is
+ * multiplied by it. An hour therefore pays what it would have paid unfloored,
+ * however deep the frequency line goes; only the number of goats it is shared
+ * between comes down.
+ */
+export function goldenMakeup(m: Multipliers): number {
+  const low = BALANCE.goldenMinDelay / m.goldenFreq
+  const high = BALANCE.goldenMaxDelay / m.goldenFreq
+  const floor = BALANCE.goldenMinGap
+  const drawn = (low + high) / 2
+
+  if (floor <= low) return 1
+  // Past here the floor covers the whole draw and every gap is the floor.
+  if (floor >= high) return floor / drawn
+
+  const floored = (floor * (floor - low) + (high * high - floor * floor) / 2) / (high - low)
+  return floored / drawn
 }
 
 export function goldenLifetime(m: Multipliers): number {
@@ -32,8 +58,8 @@ export function goldenLifetime(m: Multipliers): number {
  * running is left out of the draw and its share handed to whatever is left:
  * re-catching one only refreshed a buff that was running anyway, which reads
  * as a golden goat that did nothing, and the Lantern makes that the common
- * case — it lengthens a frenzy until one run covers several goats, and better
- * than a third of the goats caught were repeats.
+ * case — at a few levels it shortens the wait and lengthens the frenzy until
+ * they overlap, and better than a third of the goats caught were repeats.
  * With nothing running the draw is exactly as it was.
  */
 function pick(roll: number, state: GameState): GoldenKind {
@@ -54,6 +80,13 @@ function pick(roll: number, state: GameState): GoldenKind {
 /**
  * Decides what a golden goat gives. Lucky pays out of the bank but is capped
  * at 15 minutes of production, so an idle herd cannot be farmed for jackpots.
+ * The make-up for the gap floor rides outside that cap, as the power line
+ * does: it is standing in for goats that were never sent, and each of those
+ * would have carried its own fifteen minutes.
+ *
+ * The two Frenzies are left at their own length. The floor only bites at a
+ * frequency where both buffs are all but permanently up — a Frenzy there runs
+ * minutes and arrives every few seconds — so there is nothing to make up.
  */
 export function rollGolden(state: GameState, rng: () => number = Math.random): GoldenReward {
   const m = multipliers(state)
@@ -96,6 +129,6 @@ export function rollGolden(state: GameState, rng: () => number = Math.random): G
   }
 
   const cap = baseGoatsPerSecond(state, m) * 900
-  const goats = (Math.min(state.goats * 0.15, cap) + 13) * m.goldenPower
+  const goats = (Math.min(state.goats * 0.15, cap) + 13) * m.goldenPower * goldenMakeup(m)
   return { kind: 'lucky', name: 'Lucky!', note: 'Found a stash', goats }
 }
