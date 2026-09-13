@@ -71,13 +71,26 @@ export const RELICS: RelicDef[] = [
     name: 'Lantern in the Fog',
     icon: '🏮',
     costStep: 2,
-    desc: 'Golden goats wander in 25% more often and stay 25% longer per level.',
+    desc: 'Golden goats stay 25% longer and are 25% richer per level.',
     blurb: 'They are drawn to the light. So is everything else.',
+    /**
+     * Richer, not more frequent. Goats standing in the pasture at once run as
+     * `lifetime / gap`, so a relic that shortened the gap and lengthened the
+     * stay together crowded it by ×1.5625 a level: thirty-five goats waiting
+     * at level ten, one arriving every twenty seconds, and the pasture was a
+     * chore rather than a windfall. What a Lucky pays an hour runs as
+     * `freq × power`, so moving the same 1.25 off the one and onto the other
+     * pays exactly what it always did, in fewer and larger goats. The crowd
+     * then grows on the stay alone. Power leaves the two Frenzies alone, but
+     * by the time a Lantern is this deep their buffs are all but always up —
+     * `pick` drops a running Frenzy from the draw and hands its share to
+     * Lucky, which is the part power scales.
+     */
     apply: (m, level) => {
-      m.goldenFreq *= 1.25 ** level
       m.goldenLife *= 1.25 ** level
+      m.goldenPower *= 1.25 ** level
     },
-    summary: (level) => `Golden goats ×${mult(1.25 ** level)} as often and as long`,
+    summary: (level) => `Golden goats ×${mult(1.25 ** level)} as long and as rich`,
   },
   {
     id: 'hourglass',

@@ -32,8 +32,8 @@ export function goldenLifetime(m: Multipliers): number {
  * running is left out of the draw and its share handed to whatever is left:
  * re-catching one only refreshed a buff that was running anyway, which reads
  * as a golden goat that did nothing, and the Lantern makes that the common
- * case — at a few levels it shortens the wait and lengthens the frenzy until
- * they overlap, and better than a third of the goats caught were repeats.
+ * case — it lengthens a frenzy until one run covers several goats, and better
+ * than a third of the goats caught were repeats.
  * With nothing running the draw is exactly as it was.
  */
 function pick(roll: number, state: GameState): GoldenKind {
