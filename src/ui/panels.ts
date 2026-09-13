@@ -4,7 +4,7 @@ import { pendingOccult } from '../game/state'
 import { UPGRADES } from '../game/upgrades'
 import type { AchievementDef, GameState, Stats } from '../game/types'
 import { byId, el, setText, toggleClass } from './dom'
-import { formatGoats, formatRate, formatTime } from './format'
+import { formatGoats, formatRate, formatShort, formatTime } from './format'
 import type { Tooltip } from './tooltip'
 
 export interface Panels {
@@ -82,9 +82,9 @@ export function createPanels(tooltip: Tooltip): Panels {
 
       section('Ascension'),
       ...row('Ascensions', s.ascensions.toLocaleString('en-US')),
-      ...row('Occult points', s.occult.toLocaleString('en-US')),
-      ...row('Occult earned, all told', s.occultEarned.toLocaleString('en-US')),
-      ...row('Waiting to be claimed', pendingOccult(s).toLocaleString('en-US')),
+      ...row('Occult points', formatShort(s.occult)),
+      ...row('Occult earned, all told', formatShort(s.occultEarned)),
+      ...row('Waiting to be claimed', formatShort(pendingOccult(s))),
       ...row('Herded in past lives', formatGoats(s.lifetimeGoats)),
 
       section('Time'),

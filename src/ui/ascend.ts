@@ -150,14 +150,16 @@ export function createAscend(tooltip: Tooltip, handlers: AscendHandlers): Ascend
       const m = multipliers(next)
       const bonus = next.occult * m.occultPercent
 
-      setText(pointsNode, next.occult.toLocaleString('en-US'))
-      setText(bonusNode, `+${bonus.toLocaleString('en-US')}%`)
-      setText(pendingNode, pending > 0 ? `+${pending.toLocaleString('en-US')}` : '0')
+      // Points are counted in the same short hand as the relic prices they buy,
+      // so a total and a cost can be read against each other at a glance.
+      setText(pointsNode, formatShort(next.occult))
+      setText(bonusNode, `+${formatShort(bonus)}%`)
+      setText(pendingNode, pending > 0 ? `+${formatShort(pending)}` : '0')
 
       setText(nextNode, `${formatGoats(goatsForNextOccult(next))} more goats for the next point`)
 
       button.disabled = pending <= 0
-      setText(tally, pending > 0 ? `+${pending}` : '')
+      setText(tally, pending > 0 ? `+${formatShort(pending)}` : '')
       tally.hidden = pending <= 0
 
       for (const row of relicRows) {

@@ -31,7 +31,7 @@ import {
   tickBuffs,
 } from './game/state'
 import { SEEN_KEY, cloudVerdict, isSyncToken, loadSyncToken, newSyncToken, pullSave, pushSave, storeSyncToken } from './sync'
-import { formatGoats } from './ui/format'
+import { formatGoats, formatShort } from './ui/format'
 import { createUi } from './ui/render'
 
 const AUTOSAVE_SECONDS = 10
@@ -186,7 +186,7 @@ const ui = createUi({
     ui.toast({
       icon: '🕯️',
       kind: 'Ascended',
-      name: `+${result.occult.toLocaleString('en-US')} occult`,
+      name: `+${formatShort(result.occult)} occult`,
       desc: gilded.length > 0 ? `Gilded: ${gilded.join(', ')}. Fresh pasture awaits.` : 'Fresh pasture. The old herd remembers you.',
     })
   },
